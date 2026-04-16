@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz – L'Automatisation</title>
+<style>
+  :root {
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+    --green-mid: #639922;
+    --green-dark: #27500A;
+    --green-deep: #173404;
+    --teal: #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-dark: #0F6E56;
+    --amber: #EF9F27;
+    --amber-light: #FAEEDA;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --indigo: #534AB7;
+    --indigo-light: #EEEDFE;
+    --gray-100: #F5F5F3;
+    --gray-200: #E8E8E5;
+    --text: #1a1a18;
+    --text-muted: #666663;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #EEF4E8;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .app { flex: 1; max-width: 720px; margin: 0 auto; padding: 20px 16px 80px; width: 100%; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .home-hero {
+    background: var(--green);
+    border-radius: var(--radius);
+    padding: 36px 28px 28px;
+    color: var(--green-light);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::before {
+    content: '⚙';
+    position: absolute; right: 16px; top: 8px;
+    font-size: 100px; opacity: 0.1; color: white;
+  }
+  .home-hero-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #97C459; margin-bottom: 10px; }
+  .home-hero h1 { font-size: 23px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; color: #fff; }
+  .home-hero p { font-size: 14px; line-height: 1.6; color: #97C459; }
+
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .level-card { background: white; border-radius: var(--radius-sm); padding: 14px 12px; border: 1px solid var(--gray-200); text-align: center; position: relative; }
+  .level-card .lc-icon { font-size: 22px; margin-bottom: 6px; }
+  .level-card .lc-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .level-card .lc-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .level-card.locked { opacity: 0.5; }
+  .level-card.unlocked .lc-name { color: var(--green-dark); }
+  .level-card.completed { border-color: var(--green); background: var(--green-light); }
+  .level-card .lc-check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
+
+  .btn { display: block; width: 100%; padding: 14px 20px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; transition: transform 0.1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--green); color: white; }
+  .btn-primary:hover { background: var(--green-dark); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--gray-200); }
+  .btn-secondary:hover { background: var(--gray-100); }
+  .btn-danger { background: white; color: var(--red); border: 1px solid #F09595; }
+  .btn-danger:hover { background: var(--red-light); }
+
+  .info-box { background: white; border-radius: var(--radius-sm); padding: 14px 16px; border: 1px solid var(--gray-200); font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+  .info-box strong { color: var(--text); }
+
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 12px 16px; background: white; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); }
+  .quiz-level-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
+  .tag-decouvre { background: var(--teal-light); color: var(--teal-dark); }
+  .tag-alaise { background: var(--green-light); color: var(--green-dark); }
+  .tag-expert { background: var(--amber-light); color: #633806; }
+  .quiz-progress-text { font-size: 13px; font-weight: 600; color: var(--text); }
+  .quiz-score-mini { font-size: 12px; color: var(--text-muted); }
+
+  .progress-bar { height: 5px; background: var(--gray-200); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s; }
+
+  .question-card { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); padding: 22px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .question-num { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 10px; }
+  .question-text { font-size: 16px; font-weight: 500; line-height: 1.55; color: var(--text); }
+
+  .answers-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .answer-btn { width: 100%; padding: 13px 16px; background: white; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; text-align: left; cursor: pointer; color: var(--text); line-height: 1.4; transition: border-color 0.15s, background 0.15s; display: flex; gap: 10px; align-items: flex-start; }
+  .answer-btn:hover:not(:disabled) { border-color: var(--green); background: var(--green-light); }
+  .answer-btn .ans-letter { min-width: 24px; height: 24px; border-radius: 50%; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+  .answer-btn.correct { border-color: var(--teal); background: var(--teal-light); }
+  .answer-btn.correct .ans-letter { background: var(--teal); color: white; }
+  .answer-btn.wrong { border-color: var(--red); background: var(--red-light); }
+  .answer-btn.wrong .ans-letter { background: var(--red); color: white; }
+  .answer-btn.dimmed { opacity: 0.42; }
+  .answer-btn:disabled { cursor: not-allowed; }
+
+  .feedback-box { border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 14px; display: none; }
+  .feedback-box.correct { background: var(--teal-light); border: 1px solid #5DCAA5; color: #085041; }
+  .feedback-box.wrong { background: var(--red-light); border: 1px solid #F09595; color: #A32D2D; }
+  .feedback-box .fb-verdict { font-weight: 700; margin-bottom: 4px; font-size: 14px; }
+
+  .result-hero { border-radius: var(--radius); padding: 28px 22px; text-align: center; margin-bottom: 16px; }
+  .result-hero.pass { background: var(--green); color: white; }
+  .result-hero.fail { background: #F5F5F3; border: 1px solid var(--gray-200); }
+  .result-score { font-size: 56px; font-weight: 700; line-height: 1; margin: 8px 0 4px; }
+  .result-hero.pass .result-score { color: white; }
+  .result-hero.fail .result-score { color: var(--text); }
+  .result-label { font-size: 14px; opacity: 0.8; }
+  .result-verdict { font-size: 18px; font-weight: 600; margin-top: 10px; }
+
+  .errors-section { margin-bottom: 16px; }
+  .errors-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; }
+  .error-item { background: white; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); border-left: 3px solid var(--red); padding: 14px 16px; margin-bottom: 10px; font-size: 13px; line-height: 1.6; }
+  .error-q { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .error-yours { color: var(--red); margin-bottom: 3px; }
+  .error-correct { color: var(--teal-dark); font-weight: 600; margin-bottom: 4px; }
+  .error-explain { color: var(--text-muted); font-style: italic; }
+
+  .badge-screen { text-align: center; padding: 30px 20px; }
+  .badge-icon { width: 120px; height: 120px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 52px; margin: 0 auto 20px; box-shadow: 0 0 0 8px var(--green-light), 0 0 0 16px #c7dfaa; }
+  .badge-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .badge-msg { font-size: 15px; color: var(--text-muted); line-height: 1.6; max-width: 480px; margin: 0 auto 24px; }
+  .badge-msg strong { color: var(--green-dark); }
+  .stars { font-size: 28px; margin-bottom: 16px; letter-spacing: 4px; }
+  .badge-level-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+  .badge-level-tags span { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .badge-buttons { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
+
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(238,244,232,0.95); backdrop-filter: blur(6px); text-align: center; padding: 10px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--gray-200); z-index: 10; }
+  footer span { color: var(--green-dark); font-weight: 600; }
+
+  @media (max-width: 480px) {
+    .levels-grid { grid-template-columns: 1fr; }
+    .home-hero h1 { font-size: 20px; }
+    .question-text { font-size: 15px; }
+    .result-score { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="screen-home" class="screen active">
+  <div class="app">
+    <div class="home-hero">
+      <div class="home-hero-tag">Neuroéducation · Quiz formatif</div>
+      <h1>L'Automatisation</h1>
+      <p>Comprendre comment le cerveau libère des ressources cognitives en automatisant les apprentissages fondamentaux.</p>
+    </div>
+    <div class="info-box">
+      <strong>Comment ça marche ?</strong> 10 questions aléatoires par niveau · Score minimum <strong>80%</strong> pour passer au suivant · Correction formative détaillée · Badge final après les 3 niveaux.
+    </div>
+    <div class="levels-grid" id="levels-grid"></div>
+    <button class="btn btn-primary" id="btn-start" onclick="startCurrentLevel()">Commencer →</button>
+  </div>
+</div>
+
+<div id="screen-quiz" class="screen">
+  <div class="app">
+    <div class="quiz-header">
+      <span class="quiz-level-tag" id="quiz-level-tag">Je découvre</span>
+      <span class="quiz-progress-text" id="quiz-progress">Q 1/10</span>
+      <span class="quiz-score-mini" id="quiz-score-mini">Score : 0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="question-card">
+      <div class="question-num" id="q-num">Question 1</div>
+      <div class="question-text" id="q-text"></div>
+    </div>
+    <div class="answers-list" id="answers-list"></div>
+    <div class="feedback-box" id="feedback-box">
+      <div class="fb-verdict" id="fb-verdict"></div>
+      <div id="fb-explain"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next" style="display:none" onclick="nextQuestion()">Question suivante →</button>
+  </div>
+</div>
+
+<div id="screen-results" class="screen">
+  <div class="app">
+    <div class="result-hero" id="result-hero">
+      <div id="result-emoji" style="font-size:36px; margin-bottom:6px;"></div>
+      <div class="result-score" id="result-score"></div>
+      <div class="result-label">de réussite</div>
+      <div id="result-prog-bar" style="margin:12px 0 6px; height:8px; background:rgba(255,255,255,0.25); border-radius:4px; overflow:hidden;">
+        <div id="result-prog-fill" style="height:100%; border-radius:4px; transition:width 0.6s ease; background:rgba(255,255,255,0.85); width:0%;"></div>
+      </div>
+      <div class="result-verdict" id="result-verdict"></div>
+    </div>
+    <div class="errors-section" id="errors-section" style="display:none">
+      <div class="errors-title">📋 Révision des erreurs</div>
+      <div id="errors-list"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next-level" onclick="nextLevelOrBadge()" style="margin-bottom:10px"></button>
+    <button class="btn btn-secondary" onclick="retryLevel()">↺ Réessayer ce niveau</button>
+  </div>
+</div>
+
+<div id="screen-badge" class="screen">
+  <div class="app">
+    <div class="badge-screen">
+      <div class="badge-icon">⚙️</div>
+      <div class="stars">★ ★ ★</div>
+      <div class="badge-title">Expertise atteinte !</div>
+      <div class="badge-level-tags">
+        <span style="background:var(--teal-light);color:var(--teal-dark);">✓ Je découvre</span>
+        <span style="background:var(--green-light);color:var(--green-dark);">✓ Je suis à l'aise</span>
+        <span style="background:var(--amber-light);color:#633806;">✓ J'approche de l'expertise</span>
+      </div>
+      <div class="badge-msg">
+        Bravo, te voilà riche de nouvelles connaissances sur : <strong>L'Automatisation</strong>.<br><br>
+        Tu maîtrises maintenant les mécanismes de l'automatisation, son rôle dans la libération de la mémoire de travail, le déplacement cérébral, la myélinisation et les implications pédagogiques concrètes. <em>Process automated. Resources freed. 🚀</em>
+      </div>
+      <div class="badge-buttons">
+        <button class="btn btn-primary" onclick="resetAll()">↺ Recommencer depuis le début</button>
+        <button class="btn btn-danger" onclick="confirmReset()">🗑 Réinitialiser et effacer tous les scores</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Propulsé par <span>Elie Biro</span></footer>
+
+<script>
+const QUESTIONS = {
+
+  decouvre: [
+    {
+      q: "Qu'est-ce qu'un automatisme en apprentissage ?",
+      a: ["Un processus inconscient, rapide et ne nécessitant aucun effort attentionnel","Un processus volontaire nécessitant concentration et effort cognitif","Une stratégie consciente appliquée pour résoudre un problème nouveau","Un type de mémoire déclarative stockant des faits et concepts"],
+      correct: 0,
+      explain: "Un automatisme est une procédure inconsciente et rapide qui s'exécute sans mobiliser l'attention. C'est ce qui 'nous fait gagner un temps fou' selon la recherche en neurosciences cognitives."
+    },
+    {
+      q: "Quel type de mémoire stocke les automatismes ?",
+      a: ["La mémoire procédurale, implicite et non verbalisable","La mémoire sémantique, déclarative et verbalisable","La mémoire épisodique, liée aux souvenirs personnels","La mémoire de travail, temporaire et consciente"],
+      correct: 0,
+      explain: "Les automatismes sont stockés dans la mémoire procédurale — implicite, rapide, inconsciente. Contrairement aux connaissances déclaratives (sémantique), on sait faire sans pouvoir toujours expliquer comment."
+    },
+    {
+      q: "Quel est le principal bénéfice d'un automatisme pour l'apprentissage ?",
+      a: ["Il libère de la mémoire de travail pour traiter de nouvelles informations","Il garantit des résultats parfaits dans toutes les tâches complexes","Il remplace entièrement la nécessité de comprendre le contenu","Il accélère uniquement les tâches motrices comme le sport"],
+      correct: 0,
+      explain: "C'est grâce aux automatismes qu'on peut gérer sa mémoire de travail. Une compétence automatisée ne consomme plus de ressources attentionnelles — libérant de la capacité pour traiter de nouvelles informations."
+    },
+    {
+      q: "Que se passe-t-il dans le cerveau quand un apprentissage s'automatise ?",
+      a: ["Un déplacement de zone : du cortex préfrontal vers des zones plus postérieures","Une augmentation de l'activité dans tout le cerveau simultanément","La suppression définitive de la zone qui gérait cet apprentissage","Un renforcement exclusif de la mémoire de travail frontale"],
+      correct: 0,
+      explain: "L'automatisation entraîne un déplacement cérébral : l'activité passe des zones volontaires (cortex préfrontal — conscient et coûteux) vers des zones plus automatiques (postérieures, dédiées), libérant ainsi les ressources frontales."
+    },
+    {
+      q: "Quel est l'exemple classique d'un automatisme scolaire fondamental ?",
+      a: ["La lecture fluide, qui libère la MdT pour comprendre le sens","La mémorisation des capitales du monde entier","La récitation de la table de multiplication à voix haute","La rédaction d'un texte argumentatif structuré"],
+      correct: 0,
+      explain: "La lecture est l'exemple emblématique : avant l'automatisation, déchiffrer mobilise toutes les ressources de la MdT. Une fois automatisée, le déchiffrage ne coûte plus rien — la MdT peut se consacrer entièrement à la compréhension."
+    },
+    {
+      q: "Pourquoi un élève qui ne lit pas encore automatiquement a du mal en compréhension ?",
+      a: ["Le déchiffrage mobilise toute la MdT, laissant peu de place pour comprendre","La compréhension et le déchiffrage sont des processus totalement indépendants","La compréhension est toujours prioritaire sur le déchiffrage","Un faible déchiffrage améliore paradoxalement la compréhension"],
+      correct: 0,
+      explain: "La MdT est limitée en capacité. Si le déchiffrage n'est pas automatisé, il mobilise la quasi-totalité des ressources disponibles — il ne reste plus de capacité pour traiter le sens du texte. D'où l'importance capitale d'automatiser la lecture."
+    },
+    {
+      q: "Quel rythme d'entraînement est recommandé pour automatiser une procédure ?",
+      a: ["Régulier et fréquent, avec des sessions courtes mais répétées","Intensif une seule fois par semaine pour une longue durée","Espacé à intervalles croissants comme pour la mémoire sémantique","Aléatoire, en fonction des besoins ponctuels de l'élève"],
+      correct: 0,
+      explain: "La mémoire procédurale (automatismes) se consolide par un entraînement régulier et fréquent — contrairement à la mémoire sémantique qui préfère les reprises espacées. La régularité est la clé de l'automatisation."
+    },
+    {
+      q: "Quelle est la règle d'or pour automatiser un apprentissage ?",
+      a: ["Entraînement, entraînement et entraînement régulier","Comprendre en profondeur une seule fois suffit à automatiser","Réaliser des révisions espacées comme pour la mémorisation sémantique","Observer d'autres personnes réaliser la tâche correctement"],
+      correct: 0,
+      explain: "La règle d'or de l'automatisation est sans ambiguïté : entraînement répété et régulier. Ce n'est pas la compréhension (qui est un préalable), ni l'observation, ni les révisions espacées — c'est la pratique fréquente qui construit l'automatisme."
+    },
+    {
+      q: "Peut-on faire deux tâches 'en conscience' en même temps ?",
+      a: ["Non, sauf si l'une des deux est parfaitement automatisée","Oui, si les deux tâches sont très différentes l'une de l'autre","Oui, si on est suffisamment entraîné et expérimenté","Non, mais on peut s'y habituer avec de la pratique intensive"],
+      correct: 0,
+      explain: "La conscience ne peut se focaliser que sur un élément à la fois. Deux tâches conscientes simultanées créent des lacunes dans chacune. Exception : quand l'une est automatisée, elle s'exécute sans consommer d'attention — l'autre peut alors occuper la conscience."
+    },
+    {
+      q: "Comment la myélinisation contribue-t-elle à l'automatisation ?",
+      a: ["Elle épaissit les gaines des axones, accélérant la transmission nerveuse des circuits entraînés","Elle crée de nouveaux neurones dans les zones d'automatisme","Elle supprime les connexions inutiles pour simplifier les circuits","Elle augmente la taille du cortex préfrontal pour mieux gérer les tâches"],
+      correct: 0,
+      explain: "La répétition stimule la myélinisation des circuits fréquemment utilisés : la gaine de myéline s'épaissit, accélérant la transmission des signaux nerveux. C'est le substrat neurobiologique direct de l'automatisation et de la fluidité."
+    },
+    {
+      q: "Est-ce que l'automatisation est irréversible ?",
+      a: ["Non, la myéline peut s'amincir si on ne pratique plus régulièrement","Oui, une fois automatisé, l'apprentissage reste définitivement","Oui, mais uniquement pour les automatismes acquis avant 10 ans","Non, mais uniquement pour les automatismes moteurs corporels"],
+      correct: 0,
+      explain: "L'automatisation via la myélinisation est réversible : la gaine peut s'épaissir avec l'entraînement ET s'amincir avec l'inactivité. Le 'use it or lose it' s'applique aussi aux automatismes — la pratique régulière est nécessaire pour les maintenir."
+    },
+    {
+      q: "Qu'est-ce qu'une zone 'dédiée' dans le cerveau après automatisation ?",
+      a: ["Une région spécialisée qui traite la tâche automatisée de façon efficace et rapide","Une zone qui grossit visiblement pour accueillir le nouvel automatisme","Un réseau qui s'active uniquement lors de tâches nouvelles et difficiles","Une zone du cortex préfrontal exclusivement réservée aux automatismes"],
+      correct: 0,
+      explain: "Avec l'automatisation, le cerveau alloue une région spécialisée pour traiter efficacement la tâche — en zone postérieure, moins coûteuse en ressources. Cela libère les zones frontales pour le traitement conscient de nouvelles informations."
+    },
+    {
+      q: "Qu'est-ce que la mémoire procédurale selon ses caractéristiques principales ?",
+      a: ["Rapide, inconsciente, liée à l'entraînement régulier et fréquent","Lente, consciente et verbalisable comme la mémoire sémantique","Unique et universelle, identique pour tous les apprenants","Fragile et vulnérable à l'oubli, comme les connaissances scolaires"],
+      correct: 0,
+      explain: "La mémoire procédurale est caractérisée par : rapidité d'exécution, caractère inconscient (on sait faire sans réfléchir), acquisition par entraînement régulier et fréquent, et relative robustesse à l'oubli une fois bien consolidée."
+    },
+    {
+      q: "Quelle est la différence entre mémoire procédurale et mémoire sémantique pour l'acquisition ?",
+      a: ["Procédurale : régulier et fréquent ; sémantique : expansé 4 à 6 fois","Les deux s'acquièrent exactement de la même façon par répétition","Procédurale : une fois suffit ; sémantique : répétitions fréquentes","Procédurale : expansion lente ; sémantique : régulier et fréquent"],
+      correct: 0,
+      explain: "Les rythmes d'acquisition sont différents : la mémoire procédurale (automatismes) se construit par entraînement régulier et fréquent, tandis que la mémoire sémantique (connaissances) bénéficie davantage de reprises expansées (4 à 6 fois espacées)."
+    },
+    {
+      q: "Pourquoi automatiser les prérequis est-il une condition essentielle pour apprendre de nouveaux contenus ?",
+      a: ["Les prérequis automatisés ne consomment plus de ressources en MdT disponibles","Les prérequis automatisés sont plus faciles à enseigner ensuite","L'automatisation des prérequis supprime le besoin de les réviser","Les prérequis non automatisés ne sont pas mémorisables à long terme"],
+      correct: 0,
+      explain: "Pour éviter la surcharge cognitive, les prérequis doivent être non seulement présents mais automatisés — c'est-à-dire récupérables sans effort. Sinon, ils consomment de la MdT et laissent peu de ressources pour les nouvelles informations à traiter."
+    },
+    {
+      q: "Quels exemples de compétences scolaires bénéficient le plus d'une automatisation ?",
+      a: ["La lecture, le calcul mental, l'écriture cursive et la conjugaison","La dissertation, l'analyse de texte et la résolution de problèmes","La créativité, l'expression orale et l'argumentation écrite","Uniquement les compétences sportives et les pratiques artistiques"],
+      correct: 0,
+      explain: "Les compétences les plus importantes à automatiser sont celles qui servent de prérequis à tout le reste : lecture fluide, calcul mental, écriture automatique, conjugaisons. Sans leur automatisation, chaque tâche complexe devient surchargée cognitivement."
+    },
+    {
+      q: "Qu'arrive-t-il à la MdT quand une compétence s'automatise complètement ?",
+      a: ["Elle se libère et peut traiter de nouvelles informations complexes","Elle se réduit car elle n'est plus nécessaire pour cette tâche","Elle s'améliore globalement en capacité pour toutes les tâches","Elle se spécialise et ne peut plus traiter d'autres types d'informations"],
+      correct: 0,
+      explain: "C'est le bénéfice central de l'automatisation : la MdT se libère. La compétence automatisée ne consomme plus de ressources attentionnelles — tout l'espace cognitif disponible peut se consacrer à des traitements plus complexes et nouveaux."
+    },
+    {
+      q: "Qu'est-ce que le 'déplacement de zone' cérébral lors de l'automatisation ?",
+      a: ["L'activité passe des zones frontales coûteuses vers des zones plus postérieures dédiées","Les zones cérébrales se déplacent physiquement dans le crâne","L'activité cérébrale augmente dans toutes les zones simultanément","Les zones frontales prennent en charge l'automatisme définitivement"],
+      correct: 0,
+      explain: "Lors de l'automatisation, l'imagerie cérébrale montre un déplacement : l'activité frontale (volontaire, coûteuse en ressources) diminue au profit d'une région postérieure dédiée (plus efficace, automatique). Moins d'activation frontale = plus de ressources disponibles."
+    },
+    {
+      q: "Un élève pratique le calcul mental tous les jours en 5 minutes. Quel mécanisme neurobiologique est à l'œuvre ?",
+      a: ["La myélinisation progressive des circuits du calcul par l'entraînement régulier","La création de nouveaux neurones dans le cortex mathématique","L'élagage des connexions inutiles pour simplifier les calculs","L'activation de la mémoire sémantique pour les tables de multiplication"],
+      correct: 0,
+      explain: "L'entraînement régulier stimule la myélinisation des circuits du calcul : la gaine s'épaissit, la conduction nerveuse s'accélère, l'automatisme se renforce. C'est la base neurobiologique de la fluence en calcul mental."
+    },
+    {
+      q: "Quelle est la limite principale d'un automatisme mal acquis ?",
+      a: ["Il peut nécessiter l'inhibition active pour être corrigé, car il résiste au changement","Il disparaît spontanément sans nécessiter de travail de correction","Il est plus facile à corriger qu'une erreur dans une connaissance déclarative","Un automatisme mal acquis n'a aucun impact sur les apprentissages ultérieurs"],
+      correct: 0,
+      explain: "Un automatisme erroné (une mauvaise habitude de lecture, un geste sportif incorrect) est difficile à corriger car il s'exécute inconsciemment. Il faut mobiliser le contrôle inhibiteur pour bloquer l'automatisme incorrect et en construire un nouveau — un processus coûteux."
+    },
+    {
+      q: "Pourquoi dit-on que la mémoire procédurale est 'pas toujours fiable' ?",
+      a: ["Les automatismes peuvent générer des biais ou heuristiques erronées dans certains contextes","La mémoire procédurale se perd aussi vite que la mémoire sémantique","Les automatismes sont moins précis que les traitements conscients et délibérés","La mémoire procédurale ne fonctionne qu'en conditions de stress faible"],
+      correct: 0,
+      explain: "La mémoire procédurale est rapide mais pas infaillible : elle peut générer des automatismes erronés (biais, heuristiques incorrectes) qui s'imposent sans contrôle. C'est le système 1 de Kahneman — rapide mais susceptible d'erreurs dans des contextes inhabituels."
+    },
+    {
+      q: "Comment la plasticité cérébrale permet-elle l'automatisation d'une nouvelle compétence ?",
+      a: ["L'entraînement renforce les connexions synaptiques du circuit concerné par la tâche","Le cerveau crée de nouveaux neurones pour chaque nouvelle compétence acquise","Les zones cérébrales associées à la tâche disparaissent après automatisation","La plasticité ne concerne que les apprentissages réalisés avant l'âge de 10 ans"],
+      correct: 0,
+      explain: "La plasticité synaptique permet l'automatisation : l'entraînement répété renforce les connexions des circuits impliqués (règle de Hebb), épaissit la myéline, et permet l'émergence d'une zone dédiée qui traite la tâche de façon de plus en plus efficace et rapide."
+    },
+    {
+      q: "En quoi la lecture du braille illustre-t-elle la plasticité cérébrale liée à l'automatisation ?",
+      a: ["En 4 à 6 heures de pratique, le cerveau réorganise déjà ses représentations tactiles","Il faut des années avant que le cerveau ne s'adapte à la lecture braille","La lecture braille n'implique aucune réorganisation cérébrale observable","L'adaptation cérébrale au braille est uniquement génétique, pas acquise"],
+      correct: 0,
+      explain: "L'étude de Pascual-Leone sur la lecture du braille est emblématique : en seulement 4 à 6 heures de pratique, on observe déjà une réorganisation de la représentation corticale tactile des doigts. La plasticité cérébrale réagit très rapidement à l'entraînement intensif."
+    },
+    {
+      q: "Pourquoi est-il important d'automatiser les tables de multiplication avant d'aborder la division ?",
+      a: ["Sans tables automatisées, chaque division mobilise trop de MdT pour le calcul de base","Il n'est pas nécessaire d'automatiser les tables pour comprendre la division","Les tables automatisées remplacent entièrement la compréhension de la division","Les tables s'automatisent naturellement pendant l'apprentissage de la division"],
+      correct: 0,
+      explain: "La division requiert de mobiliser les tables en mémoire pendant qu'on gère la procédure de division elle-même. Si les tables ne sont pas automatisées, la MdT est saturée par leur récupération consciente — laissant peu de ressources pour traiter la procédure de division."
+    },
+    {
+      q: "Qu'est-ce que le 'système 1' de Kahneman et quel lien avec l'automatisation ?",
+      a: ["C'est le système rapide et automatique — correspondant aux automatismes acquis","C'est le système lent et délibéré — correspondant aux apprentissages conscients","C'est uniquement un système émotionnel sans lien avec les apprentissages scolaires","C'est un système propre à l'expertise — inaccessible aux débutants"],
+      correct: 0,
+      explain: "Le système 1 de Kahneman est le système rapide, automatique, peu coûteux en énergie — il correspond aux automatismes issus de l'entraînement. Le système 2 est lent, délibéré et coûteux — il correspond aux traitements conscients. L'automatisation transforme du système 2 en système 1."
+    },
+    {
+      q: "Comment la représentation corticale d'une compétence change-t-elle avec l'entraînement ?",
+      a: ["La zone dédiée s'agrandit quand la compétence est beaucoup sollicitée","La zone corticale diminue car l'automatisme nécessite moins de neurones","La représentation corticale reste strictement identique quel que soit l'entraînement","La zone corticale se déplace uniquement chez les experts de haut niveau"],
+      correct: 0,
+      explain: "Les expériences d'entraînement intensif montrent un agrandissement de la représentation corticale de la compétence pratiquée (étude du hibou : stimuler un doigt quotidiennement élargit sa zone corticale). Le cerveau alloue plus de ressources à ce qui est fréquemment utilisé."
+    },
+    {
+      q: "Quel est le lien entre automatisation et charge cognitive ?",
+      a: ["L'automatisation réduit la charge cognitive en rendant les traitements courants gratuits","L'automatisation augmente la charge cognitive car elle nécessite plus de supervision","L'automatisation est sans effet sur la charge cognitive globale des apprenants","La charge cognitive ne dépend que des contenus, pas du niveau d'automatisation"],
+      correct: 0,
+      explain: "La charge cognitive est directement liée aux ressources de MdT mobilisées. Les automatismes réduisent à zéro la charge cognitive des traitements familiers — libérant ces ressources pour les traitements nouveaux et complexes qui en ont réellement besoin."
+    },
+    {
+      q: "Quel est le risque d'un automatisme erroné difficile à corriger ?",
+      a: ["Il nécessite l'inhibition active du mauvais réflexe pour construire le bon","Il se corrige spontanément dès que l'élève comprend la règle correcte","Il disparaît avec la maturation cérébrale sans intervention pédagogique","Il n'a aucun impact durable sur les apprentissages ultérieurs de l'élève"],
+      correct: 0,
+      explain: "Un automatisme erroné résiste parce qu'il est inconscient et s'exécute plus vite que la réflexion. Pour le corriger, il faut d'abord inhiber activement la réponse automatique (coûteux cognitivement), puis construire un nouveau circuit — un processus long et exigeant."
+    },
+    {
+      q: "Pourquoi dit-on que l'automatisation 'nous fait gagner un temps fou' ?",
+      a: ["Les automatismes s'exécutent sans effort conscient, permettant de traiter beaucoup plus","Les automatismes sont plus rapides uniquement pour les tâches motrices simples","Le gain de temps concerne uniquement les experts, pas les apprenants débutants","Les automatismes accélèrent les processus uniquement en situation de stress"],
+      correct: 0,
+      explain: "Les automatismes s'exécutent de façon inconsciente et rapide — sans mobiliser l'attention. Pendant qu'un automatisme s'exécute, la conscience peut traiter d'autres informations en parallèle. C'est ce double traitement simultané qui 'fait gagner un temps fou'."
+    },
+    {
+      q: "Que signifie 'automatiser les préalables' comme technique pour éviter la surcharge cognitive ?",
+      a: ["S'assurer que les prérequis sont présents ET récupérables sans effort conscient","Enseigner tous les prérequis juste avant la nouvelle leçon concernée","Créer des supports visuels pour rappeler les prérequis pendant la tâche","Évaluer les prérequis avant chaque nouvelle séquence d'apprentissage"],
+      correct: 0,
+      explain: "Automatiser les prérequis signifie que l'élève doit pouvoir les récupérer sans effort — pas seulement les connaître. Si un prérequis est connu mais non automatisé, il consomme de la MdT à chaque récupération, créant une surcharge qui empêche l'apprentissage du nouveau contenu."
+    }
+  ],
+
+  alaise: [
+    {
+      q: "Pourquoi la distinction entre compréhension et automatisation est-elle pédagogiquement cruciale ?",
+      a: ["Comprendre est un préalable, mais seul l'entraînement répété crée l'automatisme fluide","Comprendre suffit — l'automatisation suit naturellement avec le temps","L'automatisation précède toujours la compréhension dans tout apprentissage","La compréhension et l'automatisation sont deux noms du même processus"],
+      correct: 0,
+      explain: "Comprendre une règle de grammaire ou une procédure mathématique ne garantit pas de l'appliquer automatiquement. La compréhension crée une trace déclarative ; l'automatisation exige un entraînement procédural répété pour que l'exécution devienne fluide et inconsciente."
+    },
+    {
+      q: "Comment la surcharge cognitive explique-t-elle les difficultés de compréhension en lecture ?",
+      a: ["Si déchiffrer n'est pas automatisé, la MdT saturée ne peut traiter le sens","La compréhension est toujours prioritaire sur le déchiffrage dans le cerveau","La surcharge cognitive améliore paradoxalement la compréhension par l'effort","Les difficultés de compréhension sont uniquement liées au vocabulaire inconnu"],
+      correct: 0,
+      explain: "Un élève non-lecteur fluide consacre toutes ses ressources de MdT au déchiffrage (lettres, sons, mots). Il ne reste plus de ressources pour construire le sens, intégrer les informations et répondre aux questions. L'automatisation du déchiffrage est la condition de la compréhension."
+    },
+    {
+      q: "Comment l'imagerie cérébrale confirme-t-elle le déplacement de zone lors de l'automatisation ?",
+      a: ["Moins d'activation frontale et plus d'activation dans des zones postérieures dédiées","Plus d'activation dans tout le cerveau simultanément lors de l'automatisation","Le cortex préfrontal s'agrandit physiquement pour gérer les automatismes","Aucun déplacement n'est visible en imagerie — l'automatisation est invisible"],
+      correct: 0,
+      explain: "L'IRMf montre clairement qu'une tâche non automatisée active fortement le cortex préfrontal (zone exécutive coûteuse). Après automatisation, l'activation frontale diminue, et une zone postérieure plus efficace prend le relais — preuve neurologique directe du déplacement."
+    },
+    {
+      q: "Qu'est-ce que l'élagage synaptique et quel rapport avec l'automatisation ?",
+      a: ["Il supprime les connexions peu utilisées, rendant les circuits automatisés plus efficaces","Il crée de nouvelles connexions lors de l'acquisition de nouveaux automatismes","L'élagage empêche l'automatisation en supprimant les circuits requis","Il est indépendant des pratiques d'entraînement et de l'automatisation"],
+      correct: 0,
+      explain: "L'élagage synaptique (suppression des connexions peu utilisées) optimise les réseaux en gardant uniquement les connexions pertinentes et fréquemment activées. Combiné à la myélinisation des circuits actifs, il rend les automatismes de plus en plus précis, rapides et efficaces."
+    },
+    {
+      q: "Pourquoi les automatismes sont-ils 'pas toujours fiables' selon la mémoire procédurale ?",
+      a: ["Ils s'activent parfois dans des contextes inappropriés, générant des erreurs automatiques","Ils disparaissent rapidement si on ne les entraîne pas chaque jour","Ils sont moins précis que les traitements conscients dans toutes les situations","Ils ne fonctionnent jamais aussi bien que les traitements délibérés et réfléchis"],
+      correct: 0,
+      explain: "Les automatismes s'activent sans contrôle conscient — ce qui est leur force mais aussi leur limite. Dans des contextes inhabituels, le même automatisme peut produire une réponse erronée (biais, heuristiques inappropriées). L'inhibition est alors nécessaire pour bloquer le réflexe et activer un traitement délibéré."
+    },
+    {
+      q: "Comment la règle de Hebb explique-t-elle la construction d'un automatisme ?",
+      a: ["La répétition active simultanément les mêmes circuits, renforçant progressivement leurs connexions","Un automatisme se construit par une seule exposition très intense et émotionnelle","Les connexions se forment uniquement entre zones proches anatomiquement","La règle de Hebb s'applique uniquement lors de la phase d'apprentissage conscient"],
+      correct: 0,
+      explain: "La règle de Hebb ('les neurones qui s'activent ensemble se connectent') est le mécanisme fondateur des automatismes : chaque répétition de la tâche active simultanément les mêmes réseaux, renforçant leurs connexions jusqu'à ce que la co-activation devienne quasi-automatique."
+    },
+    {
+      q: "Pourquoi l'inhibition est-elle nécessaire pour corriger un automatisme erroné ?",
+      a: ["L'automatisme s'active avant la réflexion — il faut le bloquer activement pour corriger","L'inhibition n'est jamais nécessaire car la compréhension suffit à corriger","Un automatisme erroné se corrige spontanément avec davantage de compréhension","L'inhibition affaiblit les automatismes utiles en même temps que les erronés"],
+      correct: 0,
+      explain: "Un automatisme s'active plus vite que tout traitement conscient. Pour le corriger, il faut d'abord mobiliser l'inhibition (freiner la réponse automatique), détecter l'erreur, et construire délibérément un nouvel automatisme — selon le modèle à 3 systèmes de Houdé (inhibition, déclenchement du système 2)."
+    },
+    {
+      q: "Comment la plasticité cérébrale rend-elle possible l'acquisition de nouveaux automatismes tout au long de la vie ?",
+      a: ["Les connexions synaptiques restent modifiables par l'entraînement à tout âge","La plasticité cérébrale s'arrête à la fin de l'adolescence pour les automatismes","Seuls les automatismes moteurs restent modifiables à l'âge adulte","La plasticité diminue tellement avec l'âge qu'elle est négligeable après 25 ans"],
+      correct: 0,
+      explain: "La plasticité synaptique (force des connexions modulée par l'usage) persiste tout au long de la vie. Même si la plasticité diminue avec l'âge, de nouveaux automatismes peuvent être acquis par l'entraînement répété — comme apprendre à conduire, taper au clavier ou jouer d'un instrument à l'âge adulte."
+    },
+    {
+      q: "Pourquoi la musique avec paroles nuit-elle à l'apprentissage conscient mais pas aux tâches automatisées ?",
+      a: ["Les paroles occupent la boucle phonologique — mais une tâche automatisée ne l'utilise plus","La musique avec paroles améliore la concentration pour toutes les tâches","Les paroles nuisent uniquement aux tâches visuelles et motrices","Une tâche automatisée est encore plus perturbée par la musique avec paroles"],
+      correct: 0,
+      explain: "La boucle phonologique de la MdT traite simultanément les paroles et le contenu verbal étudié — créant une interférence pour les tâches conscientes. Mais une tâche parfaitement automatisée ne mobilise plus la boucle phonologique — la musique avec paroles ne lui nuit plus."
+    },
+    {
+      q: "Qu'est-ce que la 'réorganisation fonctionnelle' du cerveau lors de l'automatisation ?",
+      a: ["Une zone corticale se spécialise progressivement pour traiter la tâche entraînée","Les fonctions cérébrales se délocalisent vers d'autres parties du corps","Le cerveau perd certaines capacités pour en développer de nouvelles","La réorganisation est uniquement anatomique et non fonctionnelle"],
+      correct: 0,
+      explain: "La plasticité cérébrale implique une réorganisation fonctionnelle lors de l'automatisation : une zone corticale se spécialise progressivement pour traiter la tâche entraînée, de façon de plus en plus efficace. Cette réorganisation s'accompagne d'une réorganisation anatomique mesurable."
+    },
+    {
+      q: "Pourquoi un expert fait-il des erreurs dans un contexte inhabituel malgré ses automatismes ?",
+      a: ["L'automatisme s'active de façon inappropriée quand le contexte change","Les experts ne font jamais d'erreurs grâce à leurs automatismes renforcés","Les automatismes experts sont toujours adaptés à tout contexte possible","L'expert ne commet plus jamais d'erreurs une fois l'automatisme acquis"],
+      correct: 0,
+      explain: "L'automatisme est contextualisé : il s'active dans les conditions habituelles d'entraînement. Dans un contexte inhabituel, l'automatisme peut soit ne pas s'activer (lacune), soit s'activer de façon inappropriée (biais). L'expertise augmente la fluidité mais pas l'infaillibilité."
+    },
+    {
+      q: "Quel est le paradoxe de l'automatisation pour la flexibilité cognitive ?",
+      a: ["Plus on automatise une procédure, plus il peut être difficile de la modifier si nécessaire","L'automatisation augmente toujours la flexibilité cognitive dans tous les contextes","L'automatisation n'a aucun effet sur la flexibilité cognitive de l'apprenant","La flexibilité et l'automatisation sont deux processus strictement indépendants"],
+      correct: 0,
+      explain: "L'automatisation rend les traitements plus rapides et efficaces — mais peut réduire la flexibilité : un automatisme bien ancré résiste au changement conscient. Kahneman et Houdé notent ce paradoxe : l'expertise développe des intuitions puissantes mais parfois rigides face à des contextes nouveaux."
+    },
+    {
+      q: "Comment le calcul mental automatisé facilite-t-il la résolution de problèmes complexes ?",
+      a: ["Il libère la MdT pour traiter les relations entre données et la stratégie globale","Il remplace entièrement la compréhension du problème mathématique","Il nécessite davantage de ressources que le calcul conscient délibéré","Il est inefficace pour les problèmes complexes car trop simpliste"],
+      correct: 0,
+      explain: "Résoudre un problème mathématique complexe exige de maintenir plusieurs données en MdT tout en planifiant la stratégie. Si le calcul de base n'est pas automatisé, il consomme des ressources précieuses — laissant peu de capacité pour la réflexion stratégique et la compréhension globale du problème."
+    },
+    {
+      q: "Pourquoi faut-il distinguer vitesse d'exécution et automatisation réelle d'un apprentissage ?",
+      a: ["Être rapide ne signifie pas automatisé — un traitement peut être rapide mais encore conscient","Vitesse et automatisation sont synonymes — l'un implique toujours l'autre","L'automatisation est toujours plus lente que le traitement conscient délibéré","Une réponse rapide prouve systématiquement que le traitement est automatisé"],
+      correct: 0,
+      explain: "Un traitement peut être rapide grâce à la pratique sans être totalement automatisé — il mobilise encore une partie de l'attention. L'automatisation vraie implique l'absence de coût cognitif, pas seulement la rapidité. L'évaluation de la fluidité doit inclure des mesures de charge cognitive, pas seulement des chronométrages."
+    },
+    {
+      q: "Comment l'automatisation d'un prérequis réduit-elle les inégalités d'apprentissage ?",
+      a: ["Elle nivelle les ressources cognitives disponibles, permettant à tous de traiter le même contenu","Elle accentue les inégalités en favorisant les élèves qui pratiquent davantage à la maison","L'automatisation n'a aucun lien avec la réduction des inégalités scolaires","Elle réduit les inégalités uniquement pour les élèves à besoins éducatifs particuliers"],
+      correct: 0,
+      explain: "Quand tous les élèves ont automatisé les prérequis (lecture, calcul), tous disposent des mêmes ressources cognitives disponibles pour le traitement du contenu nouveau. Sans cette automatisation partagée, les élèves dont les prérequis sont fragiles sont structurellement désavantagés."
+    },
+    {
+      q: "Qu'est-ce que le modèle triarchique (système 1, système 2, inhibition) apporte à la compréhension de l'automatisation ?",
+      a: ["Il montre que les automatismes (S1) doivent être inhibés pour activer la réflexion (S2)","Il prouve que le système 2 est toujours supérieur au système 1 dans l'apprentissage","Il indique que l'inhibition supprime définitivement les automatismes existants","Il affirme que les deux systèmes fonctionnent toujours en parallèle sans conflit"],
+      correct: 0,
+      explain: "Le modèle de Houdé étend Kahneman : l'inhibition est le mécanisme qui permet de passer du système 1 (automatique, rapide, parfois erroné) au système 2 (délibéré, correct mais coûteux). En pédagogie, l'inhibition est indispensable pour corriger les automatismes erronés."
+    },
+    {
+      q: "Comment le cerveau 'alloue des ressources' en réponse à l'entraînement intensif ?",
+      a: ["Il agrandit la représentation corticale des zones très sollicitées — c'est un système fermé","Il crée de nouveaux neurones uniquement dans les zones entraînées intensivement","Il réduit la taille du cortex pour rendre les circuits plus denses et efficaces","Il augmente le débit sanguin uniquement dans les zones frontales lors de l'entraînement"],
+      correct: 0,
+      explain: "Le cerveau est un système à ressources finies : si une compétence est beaucoup entraînée, le cerveau lui alloue plus de représentation corticale (la zone s'agrandit). Mais comme c'est un système fermé, d'autres zones peuvent se réduire en proportion — un compromis cortical."
+    },
+    {
+      q: "Pourquoi les automatismes peuvent-ils être un frein à la créativité dans certains cas ?",
+      a: ["Ils génèrent des fixations qui empêchent de voir des solutions non conventionnelles","Les automatismes facilitent toujours la créativité en libérant des ressources","La créativité est un processus automatique indépendant des autres automatismes","Les automatismes n'ont aucun effet positif ou négatif sur la créativité"],
+      correct: 0,
+      explain: "Les automatismes créent des 'fixations fonctionnelles' : on tend à penser en suivant les chemins déjà tracés (les automatismes les plus activés). En créativité, cela peut bloquer la pensée divergente. L'inhibition des automatismes habituels est souvent nécessaire pour générer des idées originales."
+    },
+    {
+      q: "Pourquoi la pratique régulière d'une compétence automatisée est-elle nécessaire pour la maintenir ?",
+      a: ["La myéline s'amincit sans usage — les connexions s'affaiblissent progressivement","Une compétence automatisée reste stable sans pratique pendant au moins 20 ans","L'entretien n'est nécessaire que pour les automatismes moteurs, pas cognitifs","Les automatismes bien établis sont totalement résistants à tout oubli futur"],
+      correct: 0,
+      explain: "La myélinisation est réversible : sans pratique régulière, la gaine s'amincit progressivement, ralentissant la conduction nerveuse et fragilisant l'automatisme. C'est le 'use it or lose it' neurobiologique — même les automatismes bien consolidés nécessitent une pratique d'entretien."
+    },
+    {
+      q: "Quelle est la différence entre 'entraîner' et 'comprendre' dans la construction d'un automatisme ?",
+      a: ["Comprendre crée une représentation déclarative ; entraîner construit la procédure automatique","Entraîner et comprendre sont deux processus identiques dans leurs effets","Comprendre est suffisant — l'entraînement n'apporte aucun bénéfice supplémentaire","L'entraînement précède toujours la compréhension dans tout apprentissage efficace"],
+      correct: 0,
+      explain: "Comprendre une règle crée une représentation sémantique (savoir que). L'entraînement construit la procédure automatique (savoir faire sans y penser). Les deux sont nécessaires mais distincts : la compréhension ouvre la porte, l'entraînement bâtit l'automatisme. On ne peut pas shunter l'une des deux étapes."
+    },
+    {
+      q: "Comment la réorganisation corticale lors de l'automatisation de la lecture illustre-t-elle la plasticité ?",
+      a: ["Une zone spécialisée dans les mots écrits se constitue après l'apprentissage intensif","Le cortex visuel diminue car les lettres sont reconnues de plus en plus vite","La lecture automatique n'induit aucune réorganisation corticale mesurable","La réorganisation est uniquement due au développement biologique, pas à l'entraînement"],
+      correct: 0,
+      explain: "La 'forme visuelle des mots' (Visual Word Form Area) se constitue grâce à l'entraînement intensif de la lecture. Cette zone corticale n'existe pas à la naissance — elle se développe par recyclage neuronal d'une région initialement dévolue à la reconnaissance des objets. C'est de la plasticité cérébrale expérience-dépendante."
+    },
+    {
+      q: "Pourquoi la pratique distribuée est-elle supérieure à la pratique massive pour l'automatisation ?",
+      a: ["Les sessions courtes et fréquentes optimisent la myélinisation et préviennent la saturation","Une seule longue session intense produit plus d'automatisme que plusieurs courtes","La pratique massive est supérieure car elle crée une trace plus intense","La pratique distribuée et massive ont exactement les mêmes effets sur l'automatisation"],
+      correct: 0,
+      explain: "La pratique distribuée (sessions courtes et fréquentes) est supérieure pour l'automatisation car elle : stimule la myélinisation sans saturation, permet la consolidation entre les sessions, et réactive régulièrement les circuits avant qu'ils ne s'affaiblissent. La pratique massive sature rapidement les ressources sans consolidation."
+    },
+    {
+      q: "Quel est le rapport entre automatisation et inhibition dans l'apprentissage des mathématiques ?",
+      a: ["Certains automatismes mathématiques doivent être inhibés dans des contextes spécifiques","L'inhibition est inutile une fois les procédures mathématiques automatisées","L'automatisation et l'inhibition sont des processus opposés et incompatibles","L'inhibition est uniquement nécessaire pour les apprentissages verbaux"],
+      correct: 0,
+      explain: "Exemple classique : le biais d'entier (plus grand nombre = plus grande valeur) est un automatisme qui doit être inhibé pour comprendre les fractions (1/4 < 1/2 même si 4 > 2). Les automatismes mathématiques doivent parfois être freinés pour activer un raisonnement plus fin — l'inhibition est le mécanisme requis."
+    },
+    {
+      q: "Comment diagnostiquer qu'un prérequis n'est pas automatisé chez un élève ?",
+      a: ["L'élève réussit seul mais ralentit fortement quand la tâche se complexifie","Seule une évaluation formelle peut révéler le niveau d'automatisation d'un prérequis","Un prérequis maîtrisé est toujours automatisé — la maîtrise implique l'automatisation","L'enseignant ne peut pas distinguer la maîtrise de l'automatisation d'un prérequis"],
+      correct: 0,
+      explain: "Un prérequis non automatisé se révèle à la charge cognitive : l'élève réussit quand la tâche est simple, mais échoue ou ralentit considérablement dès que la tâche se complexifie (double tâche, charge supplémentaire). L'automatisation vraie résiste à la charge cognitive — la maîtrise seule, non."
+    }
+  ],
+
+  expert: [
+    {
+      q: "Analyser : un élève comprend parfaitement la règle d'accord du participe passé mais commet des erreurs dès qu'il rédige un texte complexe. Quelle explication ?",
+      a: ["La règle est en mémoire déclarative mais non automatisée — la MdT sature sous charge","L'élève n'a pas suffisamment compris la règle malgré les apparences","La règle est automatisée mais la rédaction perturbe son activation","Cet élève présente forcément un trouble d'apprentissage spécifique diagnostiqué"],
+      correct: 0,
+      explain: "La règle est dans la mémoire déclarative (savoir que), mais pas encore dans la mémoire procédurale (savoir faire automatiquement). En rédaction, la MdT est chargée par la planification, le vocabulaire, la syntaxe — plus assez de ressources pour appliquer consciemment la règle d'accord. L'automatisation de la règle est le remède."
+    },
+    {
+      q: "Comment articuler automatisation et enseignement explicite pour optimiser l'apprentissage d'une procédure ?",
+      a: ["Enseigner explicitement la procédure d'abord, puis entraîner massivement pour l'automatiser","Entraîner d'abord par imprégnation, puis expliquer la règle sous-jacente","L'automatisation est suffisante — l'enseignement explicite n'est pas nécessaire","Il faut alterner aléatoirement explication et entraînement sans ordre défini"],
+      correct: 0,
+      explain: "La séquence optimale est : enseignement explicite (créer la représentation déclarative, la compréhension) → entraînement régulier et fréquent (construire l'automatisme procédural). La compréhension sans entraînement reste fragile sous charge ; l'entraînement sans compréhension crée des automatismes rigides et peu transférables."
+    },
+    {
+      q: "Pourquoi l'automatisation d'un prérequis ne suffit-elle pas à garantir la réussite à l'étape suivante ?",
+      a: ["L'étape suivante peut nécessiter de nouveaux prérequis eux-mêmes non automatisés","Un prérequis automatisé garantit toujours la réussite à l'étape suivante","L'automatisation d'un prérequis est une condition nécessaire et suffisante","Les prérequis automatisés peuvent devenir des obstacles aux apprentissages suivants"],
+      correct: 0,
+      explain: "L'automatisation d'un prérequis est nécessaire mais non suffisante : les apprentissages sont hiérarchiques et cumulatifs. La maîtrise automatisée du prérequis N libère la MdT pour N+1, mais N+1 peut introduire de nouveaux prérequis qui ne sont pas encore automatisés — la chaîne de prérequis doit être analysée entièrement."
+    },
+    {
+      q: "Analyser : un élève lit vite mais ne comprend pas. Quelles hypothèses sur son automatisation ?",
+      a: ["Le déchiffrage est automatisé mais les stratégies de compréhension ne le sont pas encore","Le déchiffrage n'est pas assez automatisé pour permettre la compréhension","La compréhension et le déchiffrage sont deux processus entièrement parallèles","La vitesse de lecture garantit toujours une bonne compréhension du texte"],
+      correct: 0,
+      explain: "La vitesse sans compréhension indique que le déchiffrage est automatisé (la MdT est libérée du décodage) mais que les processus de compréhension ne sont pas suffisamment opérationnels ou automatisés : stratégies d'inférence, intégration contextuelle, modèle mental du texte — des compétences qui requièrent elles aussi de l'entraînement."
+    },
+    {
+      q: "Comment expliquer que certains automatismes mal construits résistent davantage à la correction que des connaissances déclaratives erronées ?",
+      a: ["Les automatismes s'activent avant la réflexion — ils ne peuvent être corrigés que par inhibition","Les automatismes erronés sont toujours plus faciles à corriger que les connaissances déclaratives","Les automatismes erronés disparaissent spontanément avec la compréhension correcte","La correction d'un automatisme ne nécessite pas l'inhibition du réflexe existant"],
+      correct: 0,
+      explain: "Un automatisme s'active avant que le cerveau n'ait le temps de le contrôler consciemment — il précède la réflexion. Corriger une connaissance déclarative suffit à changer le discours sur soi ; corriger un automatisme nécessite de bloquer activement le réflexe (inhibition) à chaque occurrence, jusqu'à ce que le nouveau circuit surpasse l'ancien."
+    },
+    {
+      q: "Pourquoi l'automatisation est-elle à la fois une libération et un risque en termes de biais cognitifs ?",
+      a: ["Elle libère la MdT mais peut figer des réponses erronées dans des contextes inhabituels","Elle est uniquement bénéfique — aucun risque de biais n'est associé aux automatismes","Elle crée des biais uniquement pour les novices, pas pour les experts expérimentés","Les biais cognitifs sont indépendants des automatismes selon la recherche récente"],
+      correct: 0,
+      explain: "C'est le paradoxe fondamental de l'automatisation : elle libère des ressources précieuses mais peut figer des heuristiques qui seront incorrectes dans des contextes inhabituels. Les biais cognitifs (anchoring, représentativité, etc.) sont précisément des automatismes du système 1 — utiles en général, trompeurs parfois."
+    },
+    {
+      q: "Comment concevoir une progression pédagogique qui respecte la logique de l'automatisation ?",
+      a: ["Identifier les prérequis, les automatiser avant d'avancer, fragmenter la complexité progressivement","Enseigner tous les contenus en même temps pour créer des connexions naturelles","Attendre que les automatismes se construisent spontanément avec la maturation","Évaluer les automatismes uniquement en fin d'année pour ne pas interrompre les apprentissages"],
+      correct: 0,
+      explain: "Une progression respectueuse de l'automatisation identifie les prérequis à chaque étape, vérifie leur automatisation (pas seulement leur présence), et n'avance pas tant que la MdT n'est pas libérée pour le prochain niveau. La complexité augmente progressivement, chaque palier étant stabilisé avant le suivant."
+    },
+    {
+      q: "Pourquoi le piano ou le violon constituent-ils des exemples paradigmatiques d'automatisation en cascade ?",
+      a: ["Chaque niveau technique automatisé libère la MdT pour la musicalité et l'expression","La musique instrumentale est uniquement procédurale sans aucune dimension sémantique","L'automatisation musicale est de nature différente des automatismes cognitifs scolaires","Jouer d'un instrument ne peut pas s'automatiser car cela demande toujours de la conscience"],
+      correct: 0,
+      explain: "Apprendre un instrument illustre parfaitement l'automatisation en cascade : d'abord automatiser le positionnement des doigts, puis le solfège, puis les gammes, puis les accords — chaque niveau automatisé libère la MdT pour le suivant. L'expression musicale n'est possible que quand les techniques de base sont entièrement automatisées."
+    },
+    {
+      q: "Analyser : deux élèves ont le même score en calcul mental. L'un est automatisé, l'autre réfléchit encore consciemment. Quelle différence prédit-on à terme ?",
+      a: ["L'élève automatisé libère sa MdT pour des tâches complexes, l'autre sera vite surchargé","Les deux progresseront de façon identique quelle que soit leur forme de maîtrise","L'élève qui réfléchit encore a une compréhension plus profonde et sera meilleur à terme","Il n'y a aucune différence prévisible entre les deux élèves sur le long terme"],
+      correct: 0,
+      explain: "À score identique, les trajectoires divergeront dès que les tâches se complexifient. L'élève automatisé disposera de MdT libre pour traiter les relations entre données, planifier et raisonner. L'élève non automatisé sera rapidement surchargé cognitivement — son score 'correct' masquait une fragilité qui se révèlera sous charge."
+    },
+    {
+      q: "Comment la recherche sur la dyslexie illustre-t-elle l'importance de l'automatisation de la lecture ?",
+      a: ["La dyslexie perturbe l'automatisation du déchiffrage, saturant la MdT et bloquant la compréhension","La dyslexie est uniquement un trouble de la compréhension, pas du déchiffrage","Les élèves dyslexiques ne peuvent pas automatiser la lecture malgré l'entraînement","La dyslexie prouve que la lecture ne s'automatise pas vraiment chez certains élèves"],
+      correct: 0,
+      explain: "La dyslexie est précisément un trouble de l'automatisation du déchiffrage : le traitement phonologique est lent et coûteux en ressources même après entraînement. Cela sature la MdT, laissant peu de capacité pour la compréhension — d'où les difficultés généralisées en lecture malgré une intelligence normale."
+    },
+    {
+      q: "Comment l'effet Stroop illustre-t-il la puissance des automatismes sur le traitement conscient ?",
+      a: ["Le mot automatiquement décodé interfère avec la tâche consciente de nommer la couleur","L'effet Stroop prouve que les automatismes sont toujours moins efficaces que la réflexion","L'effet Stroop montre que les automatismes peuvent être facilement supprimés par la volonté","L'effet Stroop n'illustre pas les automatismes mais uniquement les troubles de l'attention"],
+      correct: 0,
+      explain: "L'effet Stroop est la démonstration parfaite de la puissance des automatismes : la lecture du mot (automatisme fort) interfère avec la tâche consciente de nommer la couleur (moins automatisée). L'automatisme 'gagne' sur la conscience — preuve que les automatismes précèdent et dominent les traitements délibérés."
+    },
+    {
+      q: "Pourquoi automatiser l'écriture cursive est-il pédagogiquement stratégique dès le primaire ?",
+      a: ["L'écriture automatisée libère la MdT pour générer des idées et construire le texte","L'écriture cursive n'est plus nécessaire avec les outils numériques modernes","L'automatisation de l'écriture ne profite qu'à la vitesse, pas à la qualité des textes","L'écriture s'automatise sans entraînement ciblé et répété régulièrement"],
+      correct: 0,
+      explain: "Écrire en mobilisant toute l'attention sur les gestes (tracé des lettres, direction, espacement) ne laisse plus de ressources pour générer des idées, construire des phrases et organiser le texte. Automatiser l'écriture cursive libère la MdT pour le processus de composition — condition d'une production textuelle de qualité."
+    },
+    {
+      q: "Comment le concept d'automatisation remet-il en question la vision de l'intelligence comme capacité fixe ?",
+      a: ["Les automatismes libèrent des ressources cognitives, augmentant fonctionnellement la capacité disponible","L'intelligence est fixe — l'automatisation ne la modifie pas selon les neurosciences","L'automatisation ne concerne que les habiletés procédurales, pas l'intelligence générale","L'intelligence se réduit avec l'automatisation car moins de ressources sont mobilisées"],
+      correct: 0,
+      explain: "L'automatisation démontre que la 'capacité cognitive effective' n'est pas fixe : en automatisant les routines, on libère de la MdT — ce qui augmente fonctionnellement les ressources disponibles pour le raisonnement complexe. C'est un argument fort pour le growth mindset appliqué à la cognition."
+    },
+    {
+      q: "Comment la recherche sur les experts (musiciens, joueurs d'échecs, chirurgiens) confirme-t-elle les bénéfices de l'automatisation ?",
+      a: ["Les experts ont automatisé tellement de procédures qu'ils disposent de MdT libre pour la stratégie","Les experts utilisent davantage le système 2 (réflexion consciente) que les novices","L'expertise se caractérise par une utilisation accrue de la MdT pour tous les traitements","L'automatisation des experts est totale — ils n'utilisent plus jamais le système 2"],
+      correct: 0,
+      explain: "Les experts se distinguent par la masse de procédures automatisées qu'ils ont construites. Cette automatisation libère leur MdT pour les aspects les plus complexes et novateurs : stratégie d'ensemble, adaptation aux contextes inhabituels, créativité. Les novices épuisent leur MdT sur les traitements de base que l'expert réalise sans effort."
+    },
+    {
+      q: "Analyser : un programme scolaire cherche à réduire le temps dédié aux exercices répétitifs au profit d'activités créatives. Quel risque pédagogique ?",
+      a: ["Les prérequis resteront non automatisés, surchargeant la MdT lors des activités créatives","Cette approche est toujours supérieure car la créativité développe toutes les compétences","Le risque est que les élèves deviennent trop experts en procédures sans comprendre","Les exercices répétitifs n'ont aucune utilité — la créativité suffit à tout apprendre"],
+      correct: 0,
+      explain: "La créativité, la pensée critique et les activités complexes requièrent de la MdT disponible. Si les prérequis ne sont pas automatisés (par manque d'exercices répétitifs), la MdT est saturée dès les tâches simples — rendant les activités créatives cognitiquement inaccessibles. Automatisation et créativité ne s'opposent pas : l'une est la condition de l'autre."
+    },
+    {
+      q: "Pourquoi l'entraînement régulier est-il supérieur à l'entraînement intensif ponctuel pour construire un automatisme durable ?",
+      a: ["La distribution temporelle optimise la myélinisation et prévient la saturation de la MdT","Un entraînement intensif unique crée un automatisme plus solide par l'intensité émotionnelle","Les deux formes d'entraînement produisent des automatismes de qualité identique","L'entraînement intensif est supérieur pour les automatismes moteurs, le régulier pour le cognitif"],
+      correct: 0,
+      explain: "L'entraînement régulier est supérieur car : chaque session myélinise les circuits actifs, le repos entre sessions permet la consolidation synaptique, et la fréquence maintient les circuits actifs avant qu'ils ne s'affaiblissent. L'entraînement massif en une session sature la MdT sans permettre cette consolidation progressive."
+    },
+    {
+      q: "Comment la recherche sur la représentation corticale (Pascual-Leone, Jenkins, Merzenich) éclaire-t-elle la pédagogie de l'automatisation ?",
+      a: ["Le cerveau alloue plus d'espace cortical aux compétences très entraînées — justifiant la pratique intensive","La représentation corticale est fixe génétiquement et non modifiable par l'entraînement","Ces recherches montrent que l'entraînement nuit à la plasticité cérébrale à long terme","Ces recherches concernent uniquement les singes et ne s'appliquent pas aux humains"],
+      correct: 0,
+      explain: "Les travaux de ces chercheurs montrent que le cerveau alloue dynamiquement de l'espace cortical en fonction de l'usage : plus une compétence est entraînée, plus sa représentation corticale est large et efficace. Cela confirme que la pratique intensive et régulière modifie physiquement le cerveau — justifiant les exercices répétitifs ciblés."
+    },
+    {
+      q: "Comment distinguer un automatisme erroné d'une simple méconnaissance de la règle en contexte d'évaluation ?",
+      a: ["L'automatisme erroné résiste à la compréhension, la méconnaissance disparaît avec l'explication","Il est impossible de distinguer les deux sans une IRM fonctionnelle","L'automatisme erroné est toujours lié à un trouble d'apprentissage diagnostiqué","La méconnaissance disparaît avec l'explication, l'automatisme erroné résiste"],
+      correct: 3,
+      explain: "Le critère discriminant est la réponse à l'intervention : une méconnaissance disparaît avec une explication claire. Un automatisme erroné résiste à la compréhension — l'élève sait que c'est faux mais 'fait quand même' l'erreur sous charge. L'automatisme erroné nécessite de l'entraînement inhibiteur, pas seulement de la re-explication."
+    },
+    {
+      q: "En quoi l'automatisation illustre-t-elle le principe pédagogique 'comprendre puis apprendre' ?",
+      a: ["La compréhension crée la représentation déclarative nécessaire avant l'entraînement procédural","L'automatisation précède toujours la compréhension — on comprend ce qu'on a pratiqué","Les deux processus sont simultanés et ne peuvent être séparés temporellement","La compréhension est optionnelle — l'automatisation par entraînement pur suffit"],
+      correct: 0,
+      explain: "Le principe 'comprendre puis apprendre' correspond exactement à la séquence déclaratif → procédural : d'abord créer une représentation consciente et correcte du contenu (compréhension), puis l'automatiser par entraînement répété (mémorisation procédurale). Automatiser sans comprendre crée des procédures fragiles et non transférables."
+    },
+    {
+      q: "Analyser : un enseignant supprime les exercices de conjugaison répétitifs pour favoriser la créativité rédactionnelle. Quel impact à long terme ?",
+      a: ["Les conjugaisons non automatisées satureront la MdT et appauvriront les textes produits","La créativité rédactionnelle développe naturellement la conjugaison par usage contextuel","Les élèves seront plus créatifs et la conjugaison viendra automatiquement avec la pratique","Cette approche est validée par toutes les recherches récentes en didactique du français"],
+      correct: 0,
+      explain: "Sans automatisation de la conjugaison, chaque production écrite requiert un effort conscient pour vérifier les formes verbales — saturant la MdT disponible pour les idées, la structure et le style. Le résultat paradoxal : moins d'exercices répétitifs = textes moins riches et moins créatifs, car la MdT est épuisée par les traitements de base."
+    },
+    {
+      q: "Comment l'automatisation contribue-t-elle à l'équité scolaire dans un contexte de classe hétérogène ?",
+      a: ["Des automatismes solides chez tous réduisent l'effet des différences de MdT initiale","L'automatisation accentue les inégalités en favorisant les élèves les plus entraînés","L'équité scolaire dépend uniquement du contenu enseigné, pas des automatismes","L'automatisation n'a aucun rapport direct avec l'équité ou les inégalités scolaires"],
+      correct: 0,
+      explain: "Les différences de capacité de MdT entre élèves sont partiellement compensées par des automatismes solides : un élève à MdT plus limitée mais avec des prérequis bien automatisés peut disposer de plus de ressources effectives qu'un élève à MdT plus grande mais prérequis fragiles. L'automatisation est ainsi un levier d'équité cognitive."
+    },
+    {
+      q: "Pourquoi le concept d'automatisation remet-il en question la croyance 'les exercices c'est ennuyeux et inutile' ?",
+      a: ["Sans exercices répétitifs, les prérequis restent non automatisés et saturent la MdT pour toujours","Les exercices répétitifs sont effectivement inutiles — seule la compréhension compte","La recherche confirme que les activités créatives suffisent à construire tous les automatismes","Les exercices ne servent qu'à évaluer les élèves, pas à construire des automatismes"],
+      correct: 0,
+      explain: "Les exercices répétitifs ciblés (calcul mental, conjugaison, lecture à voix haute…) ne sont pas 'juste de la drill' — ils construisent les automatismes qui libèrent la MdT pour la pensée créative et complexe. Sans eux, la pensée de haut niveau reste inaccessible faute de ressources cognitives disponibles. L'ennui de l'exercice répétitif est le prix de la liberté cognitive future."
+    },
+    {
+      q: "Comment articuler automatisation et métacognition pour un apprentissage optimal ?",
+      a: ["La métacognition permet de piloter consciemment l'automatisation en identifiant ce qui reste non fluide","La métacognition et l'automatisation sont incompatibles — l'une nécessite la conscience, l'autre non","L'automatisation rend la métacognition inutile car tout s'exécute sans réflexion","La métacognition ne peut s'exercer que sur des contenus déjà entièrement automatisés"],
+      correct: 0,
+      explain: "La métacognition est le pilote de l'automatisation : elle permet à l'élève d'identifier quels prérequis sont encore non fluides (monitoring de l'automatisation), de cibler son entraînement sur les lacunes, et d'évaluer si une compétence est suffisamment automatisée pour passer à l'étape suivante. Les deux processus se potentialisent mutuellement."
+    }
+  ]
+};
+
+const LEVELS = ['decouvre', 'alaise', 'expert'];
+const LEVEL_NAMES = { decouvre: 'Je découvre', alaise: 'Je suis à l\'aise', expert: 'J\'approche de l\'expertise' };
+const LEVEL_ICONS = { decouvre: '🌱', alaise: '⚡', expert: '🔬' };
+const LEVEL_DESCS = { decouvre: 'Repérage & compréhension explicite', alaise: 'Liens, nuances & distinctions fines', expert: 'Analyse, transfert & cas complexes' };
+const PASS_SCORE = 80;
+const Q_PER_SESSION = 10;
+
+let state = { unlockedLevel: 0, completedLevels: [], currentLevel: 0, sessionQuestions: [], currentQ: 0, score: 0, errors: [], answered: false };
+
+function loadState() {
+  try { const s = localStorage.getItem('automatisation_quiz_state'); if (s) { const sv = JSON.parse(s); state.unlockedLevel = sv.unlockedLevel || 0; state.completedLevels = sv.completedLevels || []; } } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem('automatisation_quiz_state', JSON.stringify({ unlockedLevel: state.unlockedLevel, completedLevels: state.completedLevels })); } catch(e) {}
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function renderHome() {
+  const grid = document.getElementById('levels-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((level, i) => {
+    const unlocked = i <= state.unlockedLevel;
+    const completed = state.completedLevels.includes(level);
+    grid.innerHTML += `<div class="level-card ${completed ? 'completed' : unlocked ? 'unlocked' : 'locked'}">
+      ${completed ? '<div class="lc-check">✓</div>' : ''}
+      <div class="lc-icon">${LEVEL_ICONS[level]}</div>
+      <div class="lc-name">${LEVEL_NAMES[level]}</div>
+      <div class="lc-desc">${LEVEL_DESCS[level]}</div>
+    </div>`;
+  });
+  const allDone = state.completedLevels.length === 3;
+  const btn = document.getElementById('btn-start');
+  if (allDone) { btn.textContent = '⚙️ Voir mon badge'; btn.onclick = () => showScreen('badge'); }
+  else { btn.textContent = `Commencer — ${LEVEL_NAMES[LEVELS[state.unlockedLevel]]} →`; btn.onclick = startCurrentLevel; }
+}
+function startCurrentLevel() {
+  const level = LEVELS[state.unlockedLevel];
+  const pool = shuffle(QUESTIONS[level]).slice(0, Q_PER_SESSION);
+  state.sessionQuestions = pool.map(q => {
+    const answers = q.a.map((text, i) => ({ text, originalIndex: i }));
+    const shuffled = shuffle(answers);
+    const newCorrect = shuffled.findIndex(a => a.originalIndex === q.correct);
+    return { q: q.q, a: shuffled.map(a => a.text), correct: newCorrect, explain: q.explain };
+  });
+  state.currentQ = 0; state.score = 0; state.errors = [];
+  state.currentLevel = state.unlockedLevel;
+  showScreen('quiz'); renderQuestion();
+}
+function renderQuestion() {
+  const q = state.sessionQuestions[state.currentQ];
+  const tagClasses = ['tag-decouvre', 'tag-alaise', 'tag-expert'];
+  document.getElementById('quiz-level-tag').textContent = LEVEL_NAMES[LEVELS[state.currentLevel]];
+  document.getElementById('quiz-level-tag').className = 'quiz-level-tag ' + tagClasses[state.currentLevel];
+  document.getElementById('quiz-progress').textContent = `Q ${state.currentQ + 1}/${Q_PER_SESSION}`;
+  document.getElementById('quiz-score-mini').textContent = `Score : ${state.score}%`;
+  document.getElementById('q-num').textContent = `Question ${state.currentQ + 1}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('progress-fill').style.width = (state.currentQ / Q_PER_SESSION * 100) + '%';
+  const list = document.getElementById('answers-list');
+  const letters = ['A','B','C','D'];
+  list.innerHTML = '';
+  q.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="ans-letter">${letters[i]}</span><span>${ans}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    list.appendChild(btn);
+  });
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+  state.answered = false;
+}
+function selectAnswer(idx) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = state.sessionQuestions[state.currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  const isCorrect = idx === q.correct;
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === idx && !isCorrect) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box ' + (isCorrect ? 'correct' : 'wrong');
+  fb.style.display = 'block';
+  document.getElementById('fb-verdict').textContent = isCorrect ? '✓ Bonne réponse !' : '✗ Pas tout à fait…';
+  document.getElementById('fb-explain').textContent = q.explain;
+  if (isCorrect) { state.score += 10; document.getElementById('quiz-score-mini').textContent = `Score : ${state.score}%`; }
+  else { state.errors.push({ question: q.q, chosen: q.a[idx], correct: q.a[q.correct], explain: q.explain }); }
+  document.getElementById('btn-next').style.display = 'block';
+  document.getElementById('btn-next').textContent = state.currentQ < Q_PER_SESSION - 1 ? 'Question suivante →' : 'Voir mes résultats →';
+}
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ < Q_PER_SESSION) renderQuestion();
+  else showResults();
+}
+function showResults() {
+  showScreen('results');
+  const pass = state.score >= PASS_SCORE;
+  const hero = document.getElementById('result-hero');
+  hero.className = 'result-hero ' + (pass ? 'pass' : 'fail');
+  document.getElementById('result-prog-bar').style.background = pass ? 'rgba(255,255,255,0.25)' : 'var(--gray-200)';
+  document.getElementById('result-prog-fill').style.background = pass ? 'rgba(255,255,255,0.85)' : 'var(--green)';
+  document.getElementById('result-emoji').textContent = pass ? '🎉' : '💡';
+  document.getElementById('result-score').textContent = state.score + '%';
+  setTimeout(() => { document.getElementById('result-prog-fill').style.width = state.score + '%'; }, 100);
+  document.getElementById('result-verdict').textContent = pass ? 'Niveau validé — bien joué !' : `Il faut 80% pour passer. Encore ${80 - state.score}% manquants !`;
+  const errSec = document.getElementById('errors-section');
+  if (state.errors.length > 0) {
+    errSec.style.display = 'block';
+    document.getElementById('errors-list').innerHTML = state.errors.map(e => `<div class="error-item">
+      <div class="error-q">❓ ${e.question}</div>
+      <div class="error-yours">✗ Votre réponse : ${e.chosen}</div>
+      <div class="error-correct">✓ Bonne réponse : ${e.correct}</div>
+      <div class="error-explain">💡 ${e.explain}</div>
+    </div>`).join('');
+  } else { errSec.style.display = 'none'; }
+  const btnNext = document.getElementById('btn-next-level');
+  if (pass) {
+    const levelKey = LEVELS[state.currentLevel];
+    if (!state.completedLevels.includes(levelKey)) state.completedLevels.push(levelKey);
+    const nextIdx = state.currentLevel + 1;
+    if (nextIdx < LEVELS.length) state.unlockedLevel = Math.max(state.unlockedLevel, nextIdx);
+    saveState();
+    btnNext.textContent = state.completedLevels.length === 3 ? '⚙️ Récupérer mon badge →' : `Niveau suivant : ${LEVEL_NAMES[LEVELS[nextIdx]]} →`;
+    btnNext.style.display = 'block';
+  } else { btnNext.style.display = 'none'; }
+}
+function nextLevelOrBadge() {
+  if (state.completedLevels.length === 3) showScreen('badge');
+  else { state.unlockedLevel = Math.min(state.currentLevel + 1, LEVELS.length - 1); showScreen('home'); renderHome(); }
+}
+function retryLevel() { showScreen('home'); renderHome(); }
+function resetAll() { state.unlockedLevel = 0; state.completedLevels = []; saveState(); showScreen('home'); renderHome(); }
+function confirmReset() {
+  if (confirm('Effacer tous les scores et recommencer depuis zéro ?')) {
+    localStorage.removeItem('automatisation_quiz_state');
+    state.unlockedLevel = 0; state.completedLevels = [];
+    showScreen('home'); renderHome();
+  }
+}
+
+loadState(); renderHome(); showScreen('home');
+</script>
+</body>
+</html>
