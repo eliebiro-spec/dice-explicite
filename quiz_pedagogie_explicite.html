@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz – La Pédagogie Explicite</title>
+<style>
+  :root {
+    --pink: #993556;
+    --pink-light: #FBEAF0;
+    --pink-mid: #D4537E;
+    --pink-dark: #72243E;
+    --pink-deep: #4B1528;
+    --teal: #1D9E75;
+    --teal-light: #E1F5EE;
+    --teal-dark: #0F6E56;
+    --amber: #EF9F27;
+    --amber-light: #FAEEDA;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --indigo: #534AB7;
+    --indigo-light: #EEEDFE;
+    --gray-100: #F5F5F3;
+    --gray-200: #E8E8E5;
+    --text: #1a1a18;
+    --text-muted: #666663;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #F5ECF0;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .app { flex: 1; max-width: 720px; margin: 0 auto; padding: 20px 16px 80px; width: 100%; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .home-hero {
+    background: var(--pink);
+    border-radius: var(--radius);
+    padding: 36px 28px 28px;
+    color: var(--pink-light);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-hero::before {
+    content: '📖';
+    position: absolute; right: 16px; top: 12px;
+    font-size: 80px; opacity: 0.12;
+  }
+  .home-hero-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #ED93B1; margin-bottom: 10px; }
+  .home-hero h1 { font-size: 23px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; color: #fff; }
+  .home-hero p { font-size: 14px; line-height: 1.6; color: #ED93B1; }
+
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .level-card { background: white; border-radius: var(--radius-sm); padding: 14px 12px; border: 1px solid var(--gray-200); text-align: center; position: relative; }
+  .level-card .lc-icon { font-size: 22px; margin-bottom: 6px; }
+  .level-card .lc-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .level-card .lc-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .level-card.locked { opacity: 0.5; }
+  .level-card.unlocked .lc-name { color: var(--pink-dark); }
+  .level-card.completed { border-color: var(--pink); background: var(--pink-light); }
+  .level-card .lc-check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; background: var(--pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
+
+  .btn { display: block; width: 100%; padding: 14px 20px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; transition: transform 0.1s; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--pink); color: white; }
+  .btn-primary:hover { background: var(--pink-dark); }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--gray-200); }
+  .btn-secondary:hover { background: var(--gray-100); }
+  .btn-danger { background: white; color: var(--red); border: 1px solid #F09595; }
+  .btn-danger:hover { background: var(--red-light); }
+
+  .info-box { background: white; border-radius: var(--radius-sm); padding: 14px 16px; border: 1px solid var(--gray-200); font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+  .info-box strong { color: var(--text); }
+
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 12px 16px; background: white; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); }
+  .quiz-level-tag { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
+  .tag-decouvre { background: var(--teal-light); color: var(--teal-dark); }
+  .tag-alaise { background: var(--pink-light); color: var(--pink-dark); }
+  .tag-expert { background: var(--amber-light); color: #633806; }
+  .quiz-progress-text { font-size: 13px; font-weight: 600; color: var(--text); }
+  .quiz-score-mini { font-size: 12px; color: var(--text-muted); }
+
+  .progress-bar { height: 5px; background: var(--gray-200); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--pink); border-radius: 3px; transition: width 0.3s; }
+
+  .question-card { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); padding: 22px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .question-num { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 10px; }
+  .question-text { font-size: 16px; font-weight: 500; line-height: 1.55; color: var(--text); }
+
+  .answers-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .answer-btn { width: 100%; padding: 13px 16px; background: white; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; text-align: left; cursor: pointer; color: var(--text); line-height: 1.4; transition: border-color 0.15s, background 0.15s; display: flex; gap: 10px; align-items: flex-start; }
+  .answer-btn:hover:not(:disabled) { border-color: var(--pink); background: var(--pink-light); }
+  .answer-btn .ans-letter { min-width: 24px; height: 24px; border-radius: 50%; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+  .answer-btn.correct { border-color: var(--teal); background: var(--teal-light); }
+  .answer-btn.correct .ans-letter { background: var(--teal); color: white; }
+  .answer-btn.wrong { border-color: var(--red); background: var(--red-light); }
+  .answer-btn.wrong .ans-letter { background: var(--red); color: white; }
+  .answer-btn.dimmed { opacity: 0.42; }
+  .answer-btn:disabled { cursor: not-allowed; }
+
+  .feedback-box { border-radius: var(--radius-sm); padding: 14px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 14px; display: none; }
+  .feedback-box.correct { background: var(--teal-light); border: 1px solid #5DCAA5; color: #085041; }
+  .feedback-box.wrong { background: var(--red-light); border: 1px solid #F09595; color: #A32D2D; }
+  .feedback-box .fb-verdict { font-weight: 700; margin-bottom: 4px; font-size: 14px; }
+
+  .result-hero { border-radius: var(--radius); padding: 28px 22px; text-align: center; margin-bottom: 16px; }
+  .result-hero.pass { background: var(--pink); color: white; }
+  .result-hero.fail { background: #F5F5F3; border: 1px solid var(--gray-200); }
+  .result-score { font-size: 56px; font-weight: 700; line-height: 1; margin: 8px 0 4px; }
+  .result-hero.pass .result-score { color: white; }
+  .result-hero.fail .result-score { color: var(--text); }
+  .result-label { font-size: 14px; opacity: 0.8; }
+  .result-verdict { font-size: 18px; font-weight: 600; margin-top: 10px; }
+
+  .errors-section { margin-bottom: 16px; }
+  .errors-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 10px; }
+  .error-item { background: white; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); border-left: 3px solid var(--red); padding: 14px 16px; margin-bottom: 10px; font-size: 13px; line-height: 1.6; }
+  .error-q { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .error-yours { color: var(--red); margin-bottom: 3px; }
+  .error-correct { color: var(--teal-dark); font-weight: 600; margin-bottom: 4px; }
+  .error-explain { color: var(--text-muted); font-style: italic; }
+
+  .badge-screen { text-align: center; padding: 30px 20px; }
+  .badge-icon { width: 120px; height: 120px; border-radius: 50%; background: var(--pink); display: flex; align-items: center; justify-content: center; font-size: 52px; margin: 0 auto 20px; box-shadow: 0 0 0 8px var(--pink-light), 0 0 0 16px #f5c8d8; }
+  .badge-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .badge-msg { font-size: 15px; color: var(--text-muted); line-height: 1.6; max-width: 480px; margin: 0 auto 24px; }
+  .badge-msg strong { color: var(--pink-dark); }
+  .stars { font-size: 28px; margin-bottom: 16px; letter-spacing: 4px; }
+  .badge-level-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+  .badge-level-tags span { padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .badge-buttons { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
+
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(245,236,240,0.95); backdrop-filter: blur(6px); text-align: center; padding: 10px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--gray-200); z-index: 10; }
+  footer span { color: var(--pink-dark); font-weight: 600; }
+
+  @media (max-width: 480px) {
+    .levels-grid { grid-template-columns: 1fr; }
+    .home-hero h1 { font-size: 20px; }
+    .question-text { font-size: 15px; }
+    .result-score { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="screen-home" class="screen active">
+  <div class="app">
+    <div class="home-hero">
+      <div class="home-hero-tag">Neuroéducation · Quiz formatif</div>
+      <h1>La Pédagogie Explicite</h1>
+      <p>Maîtrisez l'une des approches pédagogiques les mieux validées scientifiquement — de la définition à la mise en œuvre experte.</p>
+    </div>
+    <div class="info-box">
+      <strong>Comment ça marche ?</strong> 10 questions aléatoires par niveau · Score minimum <strong>80%</strong> pour passer au suivant · Correction formative détaillée · Badge final après les 3 niveaux.
+    </div>
+    <div class="levels-grid" id="levels-grid"></div>
+    <button class="btn btn-primary" id="btn-start" onclick="startCurrentLevel()">Commencer →</button>
+  </div>
+</div>
+
+<div id="screen-quiz" class="screen">
+  <div class="app">
+    <div class="quiz-header">
+      <span class="quiz-level-tag" id="quiz-level-tag">Je découvre</span>
+      <span class="quiz-progress-text" id="quiz-progress">Q 1/10</span>
+      <span class="quiz-score-mini" id="quiz-score-mini">Score : 0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="question-card">
+      <div class="question-num" id="q-num">Question 1</div>
+      <div class="question-text" id="q-text"></div>
+    </div>
+    <div class="answers-list" id="answers-list"></div>
+    <div class="feedback-box" id="feedback-box">
+      <div class="fb-verdict" id="fb-verdict"></div>
+      <div id="fb-explain"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next" style="display:none" onclick="nextQuestion()">Question suivante →</button>
+  </div>
+</div>
+
+<div id="screen-results" class="screen">
+  <div class="app">
+    <div class="result-hero" id="result-hero">
+      <div id="result-emoji" style="font-size:36px; margin-bottom:6px;"></div>
+      <div class="result-score" id="result-score"></div>
+      <div class="result-label">de réussite</div>
+      <div id="result-prog-bar" style="margin:12px 0 6px; height:8px; background:rgba(255,255,255,0.25); border-radius:4px; overflow:hidden;">
+        <div id="result-prog-fill" style="height:100%; border-radius:4px; transition:width 0.6s ease; background:rgba(255,255,255,0.85); width:0%;"></div>
+      </div>
+      <div class="result-verdict" id="result-verdict"></div>
+    </div>
+    <div class="errors-section" id="errors-section" style="display:none">
+      <div class="errors-title">📋 Révision des erreurs</div>
+      <div id="errors-list"></div>
+    </div>
+    <button class="btn btn-primary" id="btn-next-level" onclick="nextLevelOrBadge()" style="margin-bottom:10px"></button>
+    <button class="btn btn-secondary" onclick="retryLevel()">↺ Réessayer ce niveau</button>
+  </div>
+</div>
+
+<div id="screen-badge" class="screen">
+  <div class="app">
+    <div class="badge-screen">
+      <div class="badge-icon">🎓</div>
+      <div class="stars">★ ★ ★</div>
+      <div class="badge-title">Expertise atteinte !</div>
+      <div class="badge-level-tags">
+        <span style="background:var(--teal-light);color:var(--teal-dark);">✓ Je découvre</span>
+        <span style="background:var(--pink-light);color:var(--pink-dark);">✓ Je suis à l'aise</span>
+        <span style="background:var(--amber-light);color:#633806;">✓ J'approche de l'expertise</span>
+      </div>
+      <div class="badge-msg">
+        Bravo, te voilà riche de nouvelles connaissances sur : <strong>La Pédagogie Explicite</strong>.<br><br>
+        Tu maîtrises maintenant ses principes fondateurs, la séquence I do / We do / You do, son ancrage dans les neurosciences et ses implications pour réduire les inégalités scolaires. <em>Explicit. Evidence-based. Effective. 🏆</em>
+      </div>
+      <div class="badge-buttons">
+        <button class="btn btn-primary" onclick="resetAll()">↺ Recommencer depuis le début</button>
+        <button class="btn btn-danger" onclick="confirmReset()">🗑 Réinitialiser et effacer tous les scores</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Propulsé par <span>Elie Biro</span></footer>
+
+<script>
+const QUESTIONS = {
+
+  decouvre: [
+    {
+      q: "Qu'est-ce que la pédagogie explicite ?",
+      a: ["Une approche structurée qui rend visibles les objectifs, étapes et critères de réussite","Une méthode basée sur la découverte spontanée des élèves par eux-mêmes","Un enseignement individuel adapté au rythme de chaque élève","Une pédagogie centrée uniquement sur les exercices répétitifs"],
+      correct: 0,
+      explain: "La pédagogie explicite rend visible ce qui reste souvent implicite : les intentions d'apprentissage, les étapes de la tâche, les critères de réussite et les stratégies. Elle s'oppose à une transmission implicite où l'élève doit deviner ce qu'on attend de lui."
+    },
+    {
+      q: "Combien de mois de progrès l'EEF attribue-t-il à l'enseignement explicite ?",
+      a: ["+5 mois pour un coût faible et un temps court","+10 mois pour un coût modéré","+2 mois pour un coût élevé","+7 mois pour un coût moyen"],
+      correct: 0,
+      explain: "L'EEF (Education Endowment Foundation) classe l'enseignement explicite parmi les interventions à fort impact : +5 mois de progrès pour un coût faible et une mise en œuvre rapide — un des meilleurs ratios disponibles."
+    },
+    {
+      q: "Quelles sont les trois approches qui forment le 'trio gagnant' de l'EEF ?",
+      a: ["Feedback, métacognition et enseignement explicite","Tutorat, répétition espacée et apprentissage collaboratif","Réduction des effectifs, ressources numériques et coaching","Motivation, jeu et évaluation formative"],
+      correct: 0,
+      explain: "L'EEF identifie un trio d'approches combinant faible coût, mise en œuvre rapide et fort impact : le feedback, la métacognition et l'enseignement explicite. Ces trois approches constituent le socle le plus robuste validé par la recherche."
+    },
+    {
+      q: "Que désigne la phase 'I do' dans la séquence de la pédagogie explicite ?",
+      a: ["L'enseignant modélise en pensant à voix haute devant les élèves","L'élève pratique seul pour vérifier sa compréhension","Les élèves pratiquent ensemble sous la supervision de l'enseignant","L'enseignant et les élèves construisent la connaissance ensemble"],
+      correct: 0,
+      explain: "La phase 'I do' (Je fais) est la modélisation par l'enseignant : il réalise la tâche à voix haute, en rendant visible son raisonnement, ses stratégies et ses choix. C'est le modelage explicite — l'élève observe sans devoir produire encore."
+    },
+    {
+      q: "Que désigne la phase 'We do' dans la séquence de la pédagogie explicite ?",
+      a: ["Les élèves pratiquent avec l'aide et le guidage progressif de l'enseignant","L'enseignant réalise la tâche seul pour montrer le modèle attendu","Les élèves pratiquent seuls pour valider leur compréhension","Les élèves s'évaluent mutuellement sans intervention de l'enseignant"],
+      correct: 0,
+      explain: "La phase 'We do' (On fait ensemble) est la pratique guidée : l'enseignant soutient progressivement les élèves dans la réalisation de la tâche, en ajustant son niveau d'aide selon les besoins. L'étayage se retire graduellement."
+    },
+    {
+      q: "Que désigne la phase 'You do' dans la séquence de la pédagogie explicite ?",
+      a: ["L'élève pratique seul de façon autonome pour consolider","L'enseignant observe en ne disant rien pour évaluer l'élève","L'élève reformule à voix haute ce qu'il a compris du cours","Les élèves corrigent mutuellement leurs productions"],
+      correct: 0,
+      explain: "La phase 'You do' (Tu fais) est la pratique autonome : l'élève réalise la tâche seul, sans soutien direct. C'est la phase de vérification de l'acquisition réelle — non pas observée pendant le guidage, mais en conditions d'autonomie."
+    },
+    {
+      q: "Pourquoi l'enseignement explicite est-il particulièrement bénéfique pour les élèves les plus fragiles ?",
+      a: ["Il rend accessible à tous des codes que certains reçoivent implicitement en famille","Il augmente les attentes uniquement envers les élèves déjà favorisés","Les inégalités de capital culturel ne sont pas réductibles par la pédagogie","Il réduit les inégalités uniquement en maternelle et primaire début"],
+      correct: 0,
+      explain: "Les élèves issus de milieux favorisés bénéficient souvent d'un accès implicite aux codes scolaires à la maison. L'enseignement explicite démocratise cet accès en rendant visibles pour tous les critères, étapes et stratégies — réduisant ainsi les inégalités liées au capital culturel."
+    },
+    {
+      q: "Qu'est-ce qu'un objectif d'apprentissage dans le cadre de la pédagogie explicite ?",
+      a: ["Une intention d'apprentissage claire et partagée avec les élèves avant la tâche","Un résumé du cours écrit au tableau pour les élèves","Un exercice de révision proposé en début de séance","Une description du thème abordé pendant la séquence"],
+      correct: 0,
+      explain: "L'objectif d'apprentissage est l'intention pédagogique clairement formulée et partagée avec les élèves (Feed Up dans le modèle de Hattie) : 'Aujourd'hui nous allons apprendre à…'. Sans objectif clair, les élèves ne savent pas vers quoi ils tendent."
+    },
+    {
+      q: "Qu'est-ce que les critères de réussite dans la pédagogie explicite ?",
+      a: ["Des indicateurs précis qui permettent à l'élève de savoir si l'objectif est atteint","La note chiffrée obtenue à la fin de la séquence d'apprentissage","Les comportements attendus en termes de discipline en classe","Les objectifs du programme officiel formulés par l'institution"],
+      correct: 0,
+      explain: "Les critères de réussite répondent à 'Comment saura-t-on que c'est réussi ?' Ils doivent être aussi clairs et spécifiques que possible — permettant à l'élève ET à l'enseignant de monitorer les progrès en cours de tâche."
+    },
+    {
+      q: "Pourquoi la modélisation (modelage) est-elle essentielle en pédagogie explicite ?",
+      a: ["Elle rend visibles les processus cognitifs qui restent habituellement invisibles","Elle permet à l'enseignant d'évaluer le niveau des élèves en temps réel","Elle remplace la nécessité d'expliquer les critères de réussite","Elle engage les élèves dans une situation-problème motivante"],
+      correct: 0,
+      explain: "La modélisation 'met un haut-parleur sur la pensée de l'enseignant' : en pensant à voix haute, il rend observable son raisonnement, ses choix, ses stratégies — des processus cognitifs que les élèves ne pourraient pas inférer seuls à partir du résultat final."
+    },
+    {
+      q: "Selon Hattie (Visible Learning), qu'est-ce qui rend l'enseignement vraiment efficace ?",
+      a: ["Rendre l'apprentissage visible — pour l'enseignant et pour l'élève","Maximiser le temps de cours et minimiser les pauses","Utiliser des technologies numériques innovantes","Réduire la taille des classes à moins de 15 élèves"],
+      correct: 0,
+      explain: "Le concept central de Hattie est 'Visible Learning' : l'apprentissage est le plus efficace quand il est visible — quand les enseignants 'voient' l'apprentissage à travers les yeux des élèves, et quand les élèves 'voient' leur propre progression. La transparence est le levier principal."
+    },
+    {
+      q: "Quel est le lien entre pédagogie explicite et surcharge cognitive ?",
+      a: ["Elle réduit la surcharge en fragmentant et en guidant les étapes progressivement","Elle augmente la charge cognitive pour stimuler un effort d'apprentissage","Elle n'a aucun lien avec la charge cognitive selon la recherche","Elle réduit la charge uniquement pour les contenus simples et factuels"],
+      correct: 0,
+      explain: "La pédagogie explicite réduit la surcharge cognitive en décomposant la tâche en étapes claires, en activant les connaissances antérieures avant l'instruction, et en guidant progressivement. Elle évite aux élèves de consacrer leur MdT à deviner ce qu'on attend d'eux."
+    },
+    {
+      q: "Que signifie 'activer les connaissances antérieures' en pédagogie explicite ?",
+      a: ["Rappeler ce que les élèves savent déjà avant d'introduire les nouveaux contenus","Évaluer les élèves sur les connaissances antérieures avant d'avancer","Repartir de zéro pour s'assurer que tous les élèves ont les mêmes bases","Demander aux élèves d'écrire tout ce qu'ils savent sur le sujet"],
+      correct: 0,
+      explain: "Activer les connaissances antérieures consiste à réveiller les réseaux neuronaux pertinents avant d'introduire un nouveau contenu. Cela crée des ancres pour les nouvelles informations (règle de Hebb) et réduit la charge cognitive en mobilisant les connaissances existantes."
+    },
+    {
+      q: "En quoi la pédagogie explicite diffère-t-elle de la pédagogie par découverte ?",
+      a: ["L'explicite guide et structure ; la découverte laisse l'élève trouver par lui-même","L'explicite est pour les débutants, la découverte pour les élèves avancés","Elles sont identiques dans leurs effets selon les méta-analyses récentes","L'explicite est plus créative, la découverte plus structurée"],
+      correct: 0,
+      explain: "La pédagogie par découverte suppose que les élèves construisent leurs connaissances en explorant seuls — efficace pour les experts mais risquée pour les débutants sans guidage. L'explicite structure et guide chaque étape pour réduire le risque de construire de fausses représentations."
+    },
+    {
+      q: "Pourquoi la vérification de la compréhension est-elle une étape clé de la pédagogie explicite ?",
+      a: ["Elle permet à l'enseignant d'ajuster son instruction avant de passer à l'étape suivante","Elle sert uniquement à noter les élèves sur leurs acquis du moment","Elle est indispensable uniquement lors de la pratique autonome finale","Elle permet à l'enseignant de s'assurer que sa leçon est bien formulée"],
+      correct: 0,
+      explain: "La vérification de la compréhension (checking for understanding) est un fil rouge de la pédagogie explicite : elle permet à l'enseignant de 'voir' l'apprentissage en cours, d'identifier les malentendus et d'ajuster son instruction avant que les erreurs ne se consolident."
+    },
+    {
+      q: "Selon l'EEF, quel est le coût de mise en œuvre de l'enseignement explicite ?",
+      a: ["Faible — il ne requiert pas de ressources particulières","Élevé — il nécessite une formation longue et coûteuse","Modéré — il demande du matériel et des outils spécifiques","Variable selon les disciplines et les niveaux scolaires"],
+      correct: 0,
+      explain: "L'EEF classe l'enseignement explicite comme une approche à 'coût faible' — il ne requiert pas de ressources matérielles ou financières particulières, mais une compréhension claire des principes et une mise en œuvre pédagogique soignée."
+    },
+    {
+      q: "Que signifie 'rendre l'implicite explicite' dans le contexte scolaire ?",
+      a: ["Formuler clairement ce qui va de soi pour certains élèves mais pas pour d'autres","Expliquer uniquement les contenus difficiles et laisser les simples implicites","Faire des travaux pratiques pour remplacer les explications verbales","Réduire les instructions écrites pour laisser plus de place à l'oral"],
+      correct: 0,
+      explain: "Beaucoup de codes scolaires (comment argumenter, comment structurer une réponse, ce que l'enseignant attend) sont implicites pour les élèves familiers avec la culture scolaire — mais opaques pour les autres. L'enseignement explicite les rend visibles et accessibles à tous."
+    },
+    {
+      q: "Quel est le rapport entre pédagogie explicite et feedback efficace ?",
+      a: ["L'explicitation des critères rend le feedback possible et ancré dans des références claires","Le feedback n'est pas lié à la pédagogie explicite — ce sont deux approches distinctes","La pédagogie explicite remplace le feedback par une modélisation systématique","Le feedback est uniquement utile lors de la phase de pratique autonome"],
+      correct: 0,
+      explain: "La pédagogie explicite et le feedback se potentialisent : sans objectifs et critères clairs (explicitation), le feedback ne peut pas indiquer l'écart entre la production actuelle et le but visé. L'explicitation est la condition du feedback efficace."
+    },
+    {
+      q: "En quoi l'enseignement explicite favorise-t-il la métacognition des élèves ?",
+      a: ["En rendant visibles les stratégies et processus cognitifs, il invite à réfléchir sur comment on apprend","Il remplace entièrement la métacognition par une régulation externe de l'enseignant","La métacognition et l'explicite sont deux approches incompatibles selon la recherche","Il favorise uniquement la métacognition des élèves experts et autonomes"],
+      correct: 0,
+      explain: "Quand l'enseignant verbalise ses stratégies et son raisonnement (modelage), il offre un modèle de pensée métacognitive. Les élèves peuvent observer, s'approprier et intérioriser ces processus — développant leur propre capacité à réfléchir sur leur façon d'apprendre."
+    },
+    {
+      q: "Que dit la recherche sur le lien entre attentes de l'enseignant et réussite des élèves ?",
+      a: ["Des attentes élevées et explicites prédisent de meilleures performances des élèves","Des attentes basses sont préférables pour ne pas démotiver les élèves fragiles","Les attentes de l'enseignant n'ont aucun effet mesurable sur les performances","Des attentes élevées nuisent aux élèves déjà en difficulté scolaire"],
+      correct: 0,
+      explain: "Hattie souligne que les enseignants ayant des attentes élevées et explicites pour tous leurs élèves obtiennent de meilleurs résultats. Inversement, des attentes implicitement basses — souvent corrélées au milieu socioéconomique — contribuent à creuser les inégalités scolaires."
+    },
+    {
+      q: "Qu'est-ce que le 'mastery learning' (apprentissage par maîtrise) et son lien avec l'explicite ?",
+      a: ["Tous les élèves peuvent maîtriser avec critères clairs, feedback et remédiation adaptée","L'élève apprend à son propre rythme sans intervention de l'enseignant","Une approche réservée aux élèves à haut potentiel pour aller au-delà","Une technique de mémorisation systématique des contenus par cœur"],
+      correct: 0,
+      explain: "Le mastery learning suppose que tous les élèves peuvent maîtriser un contenu si on leur en donne le temps et les conditions. Il repose sur des critères de maîtrise explicites (ce que 'maîtriser' signifie concrètement), du feedback immédiat et une remédiation avant de passer à l'étape suivante."
+    },
+    {
+      q: "Pourquoi les objectifs d'apprentissage doivent-ils être partagés AVEC les élèves, et pas seulement connus de l'enseignant ?",
+      a: ["Un élève qui sait où il va peut orienter son effort et monitorer sa progression","Les objectifs sont confidentiels et doivent rester dans le plan de l'enseignant","Les élèves ne peuvent pas comprendre les objectifs pédagogiques techniques","Partager les objectifs dévoile les évaluations et réduit leur validité"],
+      correct: 0,
+      explain: "Hattie insiste : les objectifs partagés avec les élèves sont une condition de l'apprentissage visible. Un élève qui connaît l'objectif peut se monitorer (Feed Back) et comprendre ce qu'on attend de lui (Feed Up). Sans cet accès, l'effort est moins efficace et moins orienté."
+    },
+    {
+      q: "Quelle est la position de Hattie sur les attentes des enseignants envers les élèves ?",
+      a: ["Des attentes élevées explicites pour tous les élèves sont un facteur clé de réussite","Il faut adapter les attentes au niveau initial de chaque élève pour éviter la frustration","Les attentes n'ont aucun impact mesurable sur les résultats selon ses méta-analyses","Des attentes uniformes sont injustes car elles ignorent les différences individuelles"],
+      correct: 0,
+      explain: "L'un des messages forts de Hattie est que les enseignants qui ont des attentes élevées pour TOUS leurs élèves (pas seulement les 'bons') obtiennent de meilleurs résultats. Des attentes implicitement basses envers certains élèves contribuent directement à leurs sous-performances."
+    },
+    {
+      q: "Comment la pédagogie explicite réduit-elle la charge cognitive lors de l'apprentissage ?",
+      a: ["Elle décompose les tâches complexes en étapes guidées et progressives","Elle accélère le rythme pour couvrir plus de contenu en moins de temps","Elle supprime les exercices difficiles au profit d'activités plus fluides","Elle utilise des supports visuels pour remplacer les explications verbales"],
+      correct: 0,
+      explain: "La charge cognitive est réduite par plusieurs mécanismes de la pédagogie explicite : décomposition des tâches en petites étapes, activation des connaissances antérieures, guidage progressif, et clarification des critères — évitant à l'élève de dépenser sa MdT à comprendre ce qu'on attend de lui."
+    },
+    {
+      q: "Qu'est-ce que l'étayage (scaffolding) dans la pédagogie explicite ?",
+      a: ["Un soutien temporaire progressivement retiré à mesure que l'élève gagne en autonomie","Un support permanent fourni à tous les élèves en difficulté scolaire","Une aide uniquement fournie lors de la phase de pratique autonome","Un outil numérique facilitant l'accès aux contenus complexes"],
+      correct: 0,
+      explain: "L'étayage (terme de Bruner, inspiré par la ZPD de Vygotski) est un soutien temporaire et modulable : l'enseignant aide autant que nécessaire dans la phase 'We do', puis retire progressivement ce soutien à mesure que l'élève gagne en compétence, jusqu'à la pratique autonome ('You do')."
+    },
+    {
+      q: "Que signifie 'enseigner structuré' selon Hattie (Sheerens & Bosker) ?",
+      a: ["Un enseignement hautement structuré avec feedback est la forme la plus efficace","La structure nuit à la créativité des élèves selon les méta-analyses","L'enseignement non structuré favorise le transfert et la pensée critique","La structure est efficace uniquement en primaire et pas en secondaire"],
+      correct: 0,
+      explain: "Hattie cite Sheerens & Bosker : 'un enseignement très structuré ou un enseignement direct, qui met l'accent sur les tests et le feedback, émerge à nouveau comme la forme d'enseignement la plus efficace.' La structure + feedback est la combinaison la plus validée scientifiquement."
+    },
+    {
+      q: "Comment les succès criteria (critères de réussite) diffèrent-ils des objectifs d'apprentissage ?",
+      a: ["Les objectifs disent quoi apprendre, les critères disent comment savoir si c'est appris","Ce sont deux formulations différentes pour exactement le même concept","Les critères concernent l'enseignant, les objectifs concernent les élèves","Les objectifs sont quantitatifs, les critères sont qualitatifs"],
+      correct: 0,
+      explain: "L'objectif d'apprentissage ('apprendre à utiliser des adjectifs efficaces') est distinct des critères de réussite ('vous avez utilisé au moins 5 adjectifs pertinents'). Les critères rendent le succès observable et tangible — Hattie insiste sur leur nécessité pour que l'élève et l'enseignant puissent évaluer les progrès."
+    },
+    {
+      q: "Pourquoi la pédagogie explicite est-elle parfois confondue avec un enseignement purement frontal ?",
+      a: ["Parce que la modélisation et l'instruction directe y sont centrales, mais l'interaction et le guidage aussi","Parce qu'elle interdit toute activité de groupe ou travail collaboratif","Parce qu'elle réduit le rôle des élèves à l'écoute passive uniquement","Parce que l'enseignant parle la majorité du temps sans interaction"],
+      correct: 0,
+      explain: "La confusion vient du fait que la modélisation (I do) est bien un moment où l'enseignant parle. Mais la pédagogie explicite inclut aussi la pratique guidée (We do) avec interactions, et la vérification continue de la compréhension. Ce n'est pas une conférence passive — c'est un enseignement structuré et interactif."
+    },
+    {
+      q: "Qu'est-ce que Hattie entend par 'teaching and learning visible' pour l'enseignant ?",
+      a: ["L'enseignant doit 'voir' l'apprentissage à travers les yeux des élèves pour ajuster","L'enseignant doit rendre ses cours physiquement visibles avec des supports visuels","L'enseignant doit être visible et présent dans la classe à tout moment","L'enseignant doit afficher publiquement les résultats de tous les élèves"],
+      correct: 0,
+      explain: "Pour Hattie, 'Visible Learning' signifie que l'enseignant cherche activement à voir ce que comprennent ses élèves — à travers les échanges, les questionnements, les productions. Ce n'est pas de la transparence physique mais une transparence cognitive : l'enseignant sait ce qui se passe dans la tête de ses élèves."
+    },
+    {
+      q: "Selon Hattie, quel est le principal problème de l'enseignement actuel dans beaucoup de classes ?",
+      a: ["Les enseignants savent peu ce qui se passe réellement dans la tête de leurs élèves","Les contenus sont trop difficiles pour le niveau moyen des élèves","Le manque de ressources numériques limite l'efficacité de l'enseignement","Les classes sont trop nombreuses pour un enseignement de qualité"],
+      correct: 0,
+      explain: "Hattie cite Nuthall : 'les enseignants savent peu ce qui se passe dans leurs classes'. Cette méconnaissance de l'état réel de compréhension des élèves est le problème central — la pédagogie explicite et la vérification systématique de la compréhension sont la réponse à ce problème."
+    },
+    {
+      q: "Que signifie 'voir l'apprentissage à travers les yeux des élèves' selon Hattie ?",
+      a: ["Comprendre comment chaque élève perçoit et construit les connaissances enseig nées","Regarder les cahiers et les copies des élèves pour évaluer leur travail","Observer le comportement des élèves pendant la leçon pour détecter les distractions","Demander aux élèves de noter leur ressenti émotionnel après chaque cours"],
+      correct: 0,
+      explain: "Voir l'apprentissage à travers les yeux des élèves (Hattie) signifie comprendre leur état cognitif : ce qu'ils comprennent, où sont leurs erreurs, ce qui les engage. C'est la condition de l'enseignement ajusté et de l'apprentissage véritablement visible — le cœur de la pédagogie explicite."
+    }
+  ],
+
+  alaise: [
+    {
+      q: "Pourquoi la modélisation à voix haute est-elle plus efficace qu'une simple démonstration silencieuse ?",
+      a: ["Elle rend audibles les processus cognitifs invisibles — raisonnements, doutes et stratégies","Une démonstration silencieuse est toujours plus efficace car moins distrayante","La modélisation orale ralentit trop l'apprentissage pour les élèves rapides","Elle est équivalente à une démonstration silencieuse selon les méta-analyses"],
+      correct: 0,
+      explain: "La modélisation à voix haute rend observable ce qui est habituellement invisible : les hésitations, les choix de stratégie, les erreurs corrigées en temps réel. Les élèves ne peuvent pas inférer ces processus cognitifs à partir du résultat final — les verbaliser est indispensable."
+    },
+    {
+      q: "Pourquoi l'enseignement par découverte non guidée est-il moins efficace pour les débutants ?",
+      a: ["Sans guidage, les débutants risquent de consolider de fausses représentations durables","La découverte est toujours supérieure car elle développe la curiosité et l'autonomie","L'enseignement par découverte est uniquement adapté aux matières artistiques","Les débutants apprennent bien par découverte si la tâche est suffisamment motivante"],
+      correct: 0,
+      explain: "Les débutants n'ont pas encore les connaissances préalables pour explorer productivement. Sans guidage, ils risquent de construire de fausses représentations (consolider des erreurs) qui résisteront à la correction. L'enseignement explicite offre le cadre qui rend l'exploration productive."
+    },
+    {
+      q: "Comment la pédagogie explicite articule-t-elle ZPD de Vygotski et guidage progressif ?",
+      a: ["L'étayage opère dans la ZPD — l'enseignant aide à ce que l'élève peut atteindre avec aide","La ZPD de Vygotski s'oppose à la pédagogie explicite qui cible les acquis","L'étayage dépasse toujours la ZPD pour stimuler un effort supplémentaire","La ZPD ne concerne que les jeunes enfants — la pédagogie explicite s'applique à tous"],
+      correct: 0,
+      explain: "La pédagogie explicite incarne parfaitement la ZPD : l'étayage (We do) opère exactement dans cet espace entre ce que l'élève peut faire seul et ce qu'il peut atteindre avec aide. Le guidage progressif puis le retrait de l'aide permettent à l'élève de repousser ses frontières de compétence."
+    },
+    {
+      q: "Qu'est-ce que la 'pratique guidée' et comment diffère-t-elle de la 'pratique autonome' ?",
+      a: ["La guidée inclut des ajustements de l'enseignant ; l'autonome teste la maîtrise réelle sans aide","Elles sont identiques mais réalisées à des moments différents de la leçon","La guidée est moins efficace que l'autonome pour consolider les apprentissages","La pratique guidée ne peut pas révéler les lacunes — seule l'autonome le peut"],
+      correct: 0,
+      explain: "La pratique guidée (We do) est un espace d'entraînement avec soutien — l'erreur est rattrapée en temps réel, l'étayage est modulé. La pratique autonome (You do) est le vrai test de la maîtrise : elle révèle ce que l'élève peut faire SANS aide, signalant si l'élève est prêt pour la suite ou nécessite plus de guidage."
+    },
+    {
+      q: "Comment l'explicitation des objectifs réduit-elle les inégalités liées au capital culturel ?",
+      a: ["Elle rend accessible à tous des codes que seuls certains élèves reçoivent implicitement en famille","Elle augmente les attentes uniquement envers les élèves favorisés","Les inégalités de capital culturel ne sont pas réductibles par des pratiques pédagogiques","Elle réduit les inégalités uniquement en maternelle et au début du primaire"],
+      correct: 0,
+      explain: "Les élèves de milieux favorisés apprennent souvent implicitement en famille comment argumenter, structurer une réponse, anticiper les attentes. Ces codes restent opaques pour les autres. L'enseignement explicite les 'traduit' pour tous — c'est un acte d'équité pédagogique fondamental."
+    },
+    {
+      q: "Que signifie 'vérification de la compréhension en temps réel' et pourquoi est-elle différente d'une évaluation sommative ?",
+      a: ["Elle permet d'ajuster l'instruction pendant que les élèves apprennent encore","Elle mesure les acquis finaux et détermine si la séquence doit être recommencée","Ce sont deux noms pour le même processus évaluatif selon la recherche","Elle n'est utile que lors de la transition entre la pratique guidée et autonome"],
+      correct: 0,
+      explain: "La vérification formative en temps réel (hinge questions, ardoises, questions-éclairs) intervient pendant l'instruction pour signaler à l'enseignant si des ajustements sont nécessaires — avant que les erreurs ne se consolident. L'évaluation sommative mesure les acquis APRÈS l'instruction, trop tard pour ajuster."
+    },
+    {
+      q: "Comment la pédagogie explicite interagit-elle avec les connaissances antérieures selon la neuroscience ?",
+      a: ["Elle active les réseaux préexistants pour ancrer les nouvelles informations selon Hebb","Elle ignore les connaissances antérieures pour repartir d'une base commune","Elle s'oppose aux connaissances antérieures qui peuvent créer des obstacles","L'activation des préalables est optionnelle selon la neuroscience cognitive"],
+      correct: 0,
+      explain: "Activer les connaissances antérieures avant l'instruction crée des ancres neuronales (règle de Hebb) pour les nouvelles informations. La pédagogie explicite exploite ce mécanisme : en rappelant ce que l'élève sait déjà, elle prépare le réseau neuronal à recevoir et connecter les nouveaux apprentissages."
+    },
+    {
+      q: "Pourquoi la clarté de l'enseignant (teacher clarity) est-elle un facteur si puissant selon Hattie ?",
+      a: ["Elle active les réseaux préexistants pour ancrer de nouvelles informations selon Hebb","Elle ignore les connaissances antérieures pour repartir d'une base commune","Elle s'oppose aux connaissances antérieures qui peuvent créer des obstacles","L'activation des préalables est optionnelle selon les neurosciences cognitives"],
+      correct: 0,
+      explain: "Hattie identifie la 'teacher clarity' (clarté de l'enseignant) comme un facteur d'enseignement à fort impact. Quand les consignes, objectifs et critères sont limpides, la MdT n'est pas mobilisée pour déchiffrer ce qu'on attend — elle est entièrement disponible pour traiter le contenu d'apprentissage."
+    },
+    {
+      q: "Que montre la recherche de Nuthall sur ce que les enseignants savent de leurs élèves ?",
+      a: ["Les enseignants méconnaissent jusqu'à 40% de ce qui se passe réellement dans leur classe","Les enseignants ont une vision précise de la compréhension de chaque élève","Les élèves sont transparents pour les enseignants qui les observent attentivement","Seuls les enseignants novices manquent d'informations sur leurs élèves"],
+      correct: 0,
+      explain: "Nuthall a montré que les enseignants, même attentifs, méconnaissent une grande partie de ce qui se passe — jusqu'à 40% des interactions entre élèves leur échappe. Cette méconnaissance justifie la vérification systématique de la compréhension, pierre angulaire de la pédagogie explicite."
+    },
+    {
+      q: "Comment le modelage peut-il développer l'autorégulation des élèves à terme ?",
+      a: ["En internalisant progressivement les stratégies démontrées pour les appliquer seuls","Le modelage crée au contraire une dépendance à l'enseignant difficile à réduire","Le modelage n'a d'effet que sur la compréhension des contenus, pas les stratégies","L'autorégulation se développe indépendamment du modelage par l'enseignant"],
+      correct: 0,
+      explain: "Le modelage de l'enseignant offre un modèle cognitif externalisé. Progressivement, les élèves intériorisent ces stratégies pour les mobiliser de façon autonome — c'est le passage de la régulation externe (l'enseignant parle) à l'autorégulation interne (l'élève parle à lui-même). Un processus fondamentalement vygotskien."
+    },
+    {
+      q: "Pourquoi l'enseignement explicite est-il particulièrement efficace pour les apprentissages de 'surface' ?",
+      a: ["Il structure et guide l'acquisition de connaissances et procédures qui demandent d'abord à être maîtrisées","Il ne fonctionne qu'en surface — l'explicite est inefficace pour les apprentissages profonds","L'explicite est toujours supérieur au niveau profond, pas au niveau de surface","La distinction surface/profond n'est pas pertinente pour l'enseignement explicite"],
+      correct: 0,
+      explain: "Hattie distingue apprentissage de surface (connaissances et procédures à acquérir) et apprentissage profond (conceptuel, transférable). L'enseignement explicite est particulièrement efficace pour le niveau de surface — fondation indispensable avant que l'élève puisse s'engager dans un apprentissage profond."
+    },
+    {
+      q: "Comment les critères de réussite rendent-ils le feedback possible et précis ?",
+      a: ["Ils créent un référentiel commun enseignant/élève pour mesurer l'écart entre production et but","Les critères remplacent le feedback en indiquant directement ce qu'il faut faire","Le feedback ne dépend pas des critères — il peut être efficace sans eux","Les critères ne sont utiles qu'en évaluation sommative, pas pendant l'apprentissage"],
+      correct: 0,
+      explain: "Sans critères de réussite explicites, le feedback ne peut pas indiquer précisément l'écart à combler (Feed Back de Hattie). Avec des critères partagés, l'enseignant et l'élève ont le même référentiel : le feedback peut être ciblé, précis et orienté vers la progression."
+    },
+    {
+      q: "Quelle est la limite principale d'un enseignement entièrement 'découverte' pour des élèves débutants ?",
+      a: ["Sans guidage, les élèves manquent de connaissances préalables pour explorer utilement","La découverte manque uniquement de rigueur mais ses résultats sont équivalents","L'absence de guidage développe une créativité absente de l'enseignement explicite","L'enseignement par découverte est toujours supérieur selon les méta-analyses récentes"],
+      correct: 0,
+      explain: "Les débutants n'ont pas les ressources cognitives (connaissances préalables, stratégies, vocabulaire) pour explorer de façon productive sans guidage. La découverte sans structure crée de la charge cognitive inutile, des erreurs non détectées et des représentations erronées difficiles à corriger."
+    },
+    {
+      q: "En quoi la pédagogie explicite et le mastery learning sont-ils complémentaires ?",
+      a: ["Le mastery learning exige des critères de maîtrise clairs (explicite) avant de progresser","Ils sont fondamentalement incompatibles dans leurs conceptions de l'apprentissage","Le mastery learning préfère la découverte à l'enseignement direct structuré","L'explicite ne peut pas s'articuler avec le mastery learning selon la recherche"],
+      correct: 0,
+      explain: "Le mastery learning suppose que tous les élèves peuvent maîtriser un contenu si on leur donne le temps et les conditions. Cette maîtrise ne peut être vérifiée que via des critères de réussite clairs (apport de l'enseignement explicite). Sans critères explicites, 'maîtriser' reste flou et non vérifiable."
+    },
+    {
+      q: "Pourquoi l'enseignement explicite est-il qualifié d'approche 'basée sur les preuves' ?",
+      a: ["Il est l'une des stratégies les plus répliquées et efficaces dans les méta-analyses éducatives","Il a été validé uniquement par quelques études de laboratoire non répliquées","Son efficacité est anecdotique — basée sur des témoignages d'enseignants","Il est 'basé sur les preuves' uniquement dans certaines disciplines scolaires"],
+      correct: 0,
+      explain: "L'enseignement explicite est parmi les stratégies pédagogiques les mieux documentées dans les méta-analyses : Hattie, l'EEF, et de nombreuses autres synthèses convergent sur son efficacité. Sa validité est basée sur des centaines d'études, dans des contextes variés, avec des résultats cohérents."
+    },
+    {
+      q: "Comment la pédagogie explicite se distingue-t-elle du behaviorisme (Skinner) ?",
+      a: ["Elle réduit l'ambiguïté cognitive — l'élève peut consacrer sa MdT à l'apprentissage","La clarté est utile uniquement pour les élèves ayant des difficultés langagières","La clarté de l'enseignant n'est pas mesurable dans les méta-analyses de Hattie","Elle est utile mais bien moins efficace que le tutorat ou les petits groupes"],
+      correct: 0,
+      explain: "Le behaviorisme (Skinner) ne s'intéresse qu'aux comportements observables (stimuli/réponses) sans considérer les processus cognitifs internes. La pédagogie explicite va bien au-delà : elle rend visibles les processus cognitifs (raisonnement, stratégies) et guide leur développement — une approche cognitiviste structurée."
+    },
+    {
+      q: "Comment Rosenshine définit-il les 'principes d'instruction' liés à l'enseignement explicite ?",
+      a: ["Des principes issus de recherches sur les enseignants efficaces : petits pas, vérification, guidage dense","Des règles disciplinaires pour maintenir un bon climat de classe","Des stratégies motivationnelles pour engager les élèves dans les apprentissages","Un programme pédagogique officiel recommandé par les ministères de l'Éducation"],
+      correct: 0,
+      explain: "Les 'Principles of Instruction' de Rosenshine (2012) sont issus de trois sources : la recherche sur les enseignants les plus efficaces, la psychologie cognitive et les études sur l'apprentissage. Ils formalisent les pratiques de la pédagogie explicite : petites étapes, vérification systématique, étayage progressif."
+    },
+    {
+      q: "Pourquoi le 'check for understanding' doit-il être continu et non réservé à la fin de la leçon ?",
+      a: ["Des erreurs non détectées en cours de route se consolident et sont difficiles à corriger ensuite","Une vérification en fin de leçon est suffisante si les objectifs sont bien formulés","La vérification continue distrait les élèves et fragmente le déroulement de la leçon","Elle n'est utile qu'avant la pratique autonome, pas pendant la modélisation"],
+      correct: 0,
+      explain: "Si l'enseignant attend la fin pour vérifier la compréhension, les élèves ayant mal compris ont pratiqué et consolidé des erreurs pendant toute la séance. La vérification continue (hinge questions, reformulations, ardoises) permet des ajustements immédiats — au moment où ils coûtent encore peu."
+    },
+    {
+      q: "En quoi la pédagogie explicite contribue-t-elle à développer l'engagement actif des élèves ?",
+      a: ["En rendant l'objectif clair et les critères accessibles, l'effort devient orienté et porteur de sens","L'engagement actif est indépendant de la clarté pédagogique — il dépend de la motivation","La pédagogie explicite réduit l'engagement en trop structurant les tâches","L'engagement actif n'est possible que lors de la phase de pratique autonome"],
+      correct: 0,
+      explain: "L'engagement actif est favorisé quand l'élève sait où il va et peut évaluer ses progrès. Sans objectif clair ni critères, l'effort est aveugle et non orienté — décourageant. La pédagogie explicite donne sens à l'effort en le reliant à des buts visibles et des critères compréhensibles."
+    },
+    {
+      q: "Comment l'enseignement explicite prévient-il les malentendus durables ('misconceptions') ?",
+      a: ["La vérification continue et le feedback immédiat corrigent les erreurs avant leur consolidation","Les malentendus ne peuvent pas être prévenus — ils se corrigent uniquement après coup","L'explicite les prévient uniquement en réduisant le nombre de nouvelles informations","Les malentendus sont inévitables et indépendants de la qualité de l'enseignement"],
+      correct: 0,
+      explain: "Les malentendus se consolident quand ils passent inaperçus et que l'élève continue à pratiquer sur une base erronée. La vérification continue (check for understanding) de la pédagogie explicite détecte et corrige ces erreurs avant qu'elles ne s'ancrent — c'est son rôle préventif essentiel."
+    },
+    {
+      q: "Comment le niveau de guidage doit-il évoluer à mesure que l'élève progresse ?",
+      a: ["Il doit diminuer progressivement — du fort guidage (I do) vers l'autonomie (You do)","Il doit rester constant pour garantir la cohérence de l'apprentissage","Il doit augmenter avec la complexité du contenu pour maintenir le soutien","Le guidage est identique pour tous les élèves quel que soit leur niveau"],
+      correct: 0,
+      explain: "La séquence I do → We do → You do reflète un retrait progressif du guidage à mesure que l'élève gagne en compétence. C'est une application directe de la ZPD : on commence dans la zone d'aide maximale et on retire graduellement le soutien jusqu'à l'autonomie complète."
+    },
+    {
+      q: "Pourquoi dit-on que l'enseignement explicite 'réduit l'ambiguïté cognitive' ?",
+      a: ["L'élève sait ce qu'on attend de lui — aucune ressource de MdT n'est dépensée à deviner","L'ambiguïté est indépendante de la clarté de l'enseignant selon la recherche","Elle réduit l'ambiguïté uniquement pour les élèves à haute capacité cognitive","L'ambiguïté cognitive est bénéfique pour stimuler le raisonnement des élèves"],
+      correct: 0,
+      explain: "Quand les objectifs, étapes et critères sont flous, les élèves consacrent une partie de leur MdT limitée à déchiffrer ce qu'on attend d'eux. Cette 'ambiguïté cognitive' est une source de charge inutile. L'enseignement explicite l'élimine — libérant ces ressources pour l'apprentissage réel du contenu."
+    },
+    {
+      q: "Comment la pédagogie explicite favorise-t-elle le transfert des apprentissages ?",
+      a: ["En développant d'abord des connaissances de surface solides qui permettent ensuite la généralisation","Elle s'oppose au transfert car trop centrée sur les procédures spécifiques","Le transfert ne dépend que de la motivation, pas de la méthode pédagogique","Elle favorise uniquement le transfert proche, pas le transfert lointain"],
+      correct: 0,
+      explain: "Le transfert requiert des connaissances solides et bien connectées (Hattie cite Pugh & Bergin : 'conceptually deep, cohesive, and connected'). L'enseignement explicite construit d'abord les bases de surface, puis guide la structuration des connaissances en profondeur — conditions du transfert à de nouveaux contextes."
+    },
+    {
+      q: "Quel est le rôle des exemples résolus (worked examples) dans la pédagogie explicite ?",
+      a: ["Ils réduisent la charge cognitive en montrant le processus complet avant que l'élève ne pratique","Ils remplacent la modélisation de l'enseignant car plus précis et reproductibles","Ils sont moins efficaces que la découverte car trop directifs pour les élèves","Ils n'ont aucun effet mesurable sur l'apprentissage selon la recherche"],
+      correct: 0,
+      explain: "Les exemples résolus (worked examples) sont une forme d'enseignement explicite : ils montrent le processus de résolution complet, réduisant la charge cognitive liée à l'exploration et permettant à l'élève de se concentrer sur l'analyse de la procédure. Sweller les identifie comme particulièrement efficaces pour les débutants."
+    },
+    {
+      q: "Comment la pédagogie explicite s'articule-t-elle avec les attentes différenciées selon les élèves ?",
+      a: ["Elle milite pour des attentes élevées pour tous — l'explicitation est le mécanisme pour y parvenir","Elle préconise des attentes adaptées au niveau initial de chaque groupe d'élèves","Des attentes uniformes sont contre-productives selon les principes de l'explicite","L'explicite laisse à l'enseignant toute latitude sur les attentes par élève"],
+      correct: 0,
+      explain: "La pédagogie explicite et Hattie convergent : des attentes élevées pour TOUS les élèves, combinées à une instruction explicite et un soutien adapté, produisent les meilleurs résultats. L'explicitation est précisément le mécanisme qui permet à tous d'atteindre ces attentes élevées — pas de réduire les attentes."
+    },
+    {
+      q: "En quoi la pédagogie explicite rejoint-elle les neurosciences de la plasticité cérébrale ?",
+      a: ["Elle crée les conditions d'attention et d'activation nécessaires aux modifications synaptiques","Elle utilise directement les données d'imagerie cérébrale pour guider l'enseignement","Elle s'oppose aux neurosciences qui privilégient l'apprentissage par exploration","La plasticité cérébrale est indépendante des méthodes pédagogiques utilisées"],
+      correct: 0,
+      explain: "Les connexions neuronales se créent quand les élèves sont attentifs et actifs (règle de Hebb). La pédagogie explicite crée les conditions optimales : objectifs clairs (attention dirigée), guidage progressif (activation sans surcharge), vérification (feedback pour corriger les circuits erronés). Elle respecte les conditions de la plasticité."
+    }
+  ],
+
+  expert: [
+    {
+      q: "Analyser : un enseignant passe directement à la pratique autonome sans phase de pratique guidée. Quel est le risque principal ?",
+      a: ["Les élèves n'ayant pas eu de guidage peuvent consolider des erreurs pendant la pratique autonome","La pratique autonome immédiate développe mieux l'autonomie et la créativité","Ce n'est pas un problème si la modélisation a été suffisamment claire et longue","La pratique guidée n'est utile que pour les contenus complexes — pas pour les simples"],
+      correct: 0,
+      explain: "Sans la phase 'We do', les élèves passent de la modélisation à l'autonomie sans transition. Ceux qui n'ont pas compris pratiquent et consolident leurs erreurs sans correction. La pratique guidée sert précisément à détecter et corriger les malentendus avant qu'ils ne se fixent dans la pratique autonome."
+    },
+    {
+      q: "Comment articuler pédagogie explicite et apprentissage profond selon Hattie ?",
+      a: ["L'explicite construit les bases de surface indispensables au traitement profond ultérieur","L'explicite ne peut pas conduire à l'apprentissage profond — il reste superficiel","L'apprentissage profond nécessite la découverte — l'explicite s'y oppose","Les deux s'excluent mutuellement selon les méta-analyses de Hattie"],
+      correct: 0,
+      explain: "Hattie distingue apprentissage de surface (connaissances, procédures) et profond (conceptuel, transférable). L'enseignement explicite est optimal pour la surface — fondation sans laquelle le profond est impossible. Une fois la surface consolidée, des stratégies différentes (discussion, problèmes ouverts) permettent d'aller vers le profond."
+    },
+    {
+      q: "Pourquoi l'enseignement explicite peut-il réduire les inégalités plus efficacement que les approches différenciées classiques ?",
+      a: ["Il démocratise les codes implicites plutôt que d'adapter les attentes vers le bas","La différenciation classique est toujours supérieure pour réduire les inégalités","L'enseignement explicite accentue les inégalités car il favorise les élèves rapides","Les deux approches réduisent les inégalités de façon strictement identique"],
+      correct: 0,
+      explain: "La différenciation classique risque de maintenir des attentes basses pour certains élèves — réduisant les exigences plutôt que l'écart. L'enseignement explicite propose la même qualité d'instruction à tous, avec un guidage suffisamment soutenu pour que tous puissent accéder à des attentes élevées — une équité de contenu, pas d'attente."
+    },
+    {
+      q: "Analyser : une enseignante présente des objectifs au tableau mais ne les reformule pas avec les élèves. Qu'est-il risqué ?",
+      a: ["Les objectifs sont affichés mais pas nécessairement compris — la visibilité ne suffit pas","Cette pratique est suffisante si les objectifs sont clairement formulés","Reformuler les objectifs est inutile — leur affichage garantit leur compréhension","L'important est que l'enseignant connaisse les objectifs, pas nécessairement les élèves"],
+      correct: 0,
+      explain: "L'enseignement explicite requiert que les objectifs soient non seulement partagés mais compris. Un objectif affiché mais non travaillé reste décoratif. Les reformulations, questions et vérifications permettent à l'enseignant de s'assurer que les élèves ont bien intégré l'intention d'apprentissage — pas seulement lu les mots."
+    },
+    {
+      q: "Comment expliquer le paradoxe que l'enseignement explicite soit associé à davantage d'autonomie à terme ?",
+      a: ["Elle optimise la charge intrinsèque utile et minimise la charge inutile extraneous","Elle augmente délibérément la charge pour stimuler un effort plus soutenu","La théorie de la charge cognitive invalide l'enseignement explicite selon Sweller","Elle ne s'articule pas avec cette théorie — ce sont deux cadres indépendants"],
+      correct: 0,
+      explain: "C'est le paradoxe fondateur de la ZPD : un guidage fort et bien calibré au départ permet un retrait progressif. À terme, l'élève ayant les outils, les stratégies et les critères internalisés peut les mobiliser seul. L'autonomie est le produit d'un étayage bien géré — pas de son absence dès le début."
+    },
+    {
+      q: "Pourquoi la 'teacher clarity' (clarté de l'enseignant) est-elle un facteur d'impact élevé selon les méta-analyses de Hattie ?",
+      a: ["Elle réduit la charge extraneous et libère la MdT pour l'apprentissage réel du contenu","La clarté est utile mais non mesurable dans les méta-analyses selon Hattie","Elle est efficace uniquement en primaire — les élèves plus âgés n'en ont pas besoin","La clarté de l'enseignant est une compétence innée, non développable par la formation"],
+      correct: 0,
+      explain: "La charge cognitive inutile (extraneous load) générée par des consignes floues ou des objectifs ambigus consomme des ressources de MdT sans produire d'apprentissage. La teacher clarity réduit cette charge extraneous — libérant la MdT pour le traitement du contenu réel. C'est le mécanisme cognitif de son impact élevé."
+    },
+    {
+      q: "Comment la pédagogie explicite interagit-elle avec la théorie de la charge cognitive (Sweller) ?",
+      a: ["Elle optimise la charge intrinsèque utile et minimise la charge inutile extraneous","Elle augmente délibérément la charge pour stimuler un effort d'apprentissage plus fort","La théorie de la charge cognitive invalide l'enseignement explicite selon Sweller","Elle ne s'articule pas avec la charge cognitive — ce sont deux cadres indépendants"],
+      correct: 0,
+      explain: "La théorie de la charge cognitive (Sweller) distingue charge intrinsèque (difficulté inhérente du contenu), extraneous (inutile, liée à la présentation) et germane (utile à l'apprentissage). L'enseignement explicite minimise la charge extraneous (clarté, étayage) pour maximiser la charge germane (connexions, schémas) — une optimisation cognitive directe."
+    },
+    {
+      q: "Analyser : un enseignant pratique l'enseignement explicite mais n'adapte jamais son niveau de guidage selon les réponses des élèves. Quelle limite ?",
+      a: ["L'explicite sans ajustement devient un cours magistral déguisé — la réactivité est essentielle","Un guidage constant garantit la cohérence — l'adaptation n'est pas nécessaire","L'adaptation est utile uniquement lors de la pratique autonome, pas pendant le guidage","Il n'y a aucune limite — la régularité du guidage est une force de l'explicite"],
+      correct: 0,
+      explain: "La pédagogie explicite est souvent confondue avec un cours magistral car elle inclut une forte instruction directe. Mais son cœur est la réactivité : la vérification continue de la compréhension et l'ajustement du guidage selon les réponses. Sans cette adaptation, l'explicite perd son caractère formateur et devient effectivement une transmission à sens unique."
+    },
+    {
+      q: "Comment les principes de Rosenshine (2012) formalisent-ils la pédagogie explicite ?",
+      a: ["Les petits pas respectent les limites de la MdT et permettent de vérifier à chaque étape","Les grands blocs sont plus efficaces car ils donnent une vue d'ensemble complète","L'efficacité des petits pas n'est prouvée qu'en primaire selon la recherche","Les petits pas ralentissent trop pour les élèves les plus capables du groupe"],
+      correct: 0,
+      explain: "Les 10 principes de Rosenshine (2012) synthétisent trois décennies de recherche sur les enseignants les plus efficaces : commencer par une révision courte, présenter de nouvelles informations en petits pas, poser des questions, fournir des modèles, guider la pratique initiale, vérifier la compréhension de tous, etc. C'est l'opérationnalisation la plus précise de la pédagogie explicite."
+    },
+    {
+      q: "Pourquoi la révision des apprentissages antérieurs en début de séance est-elle un principe clé de l'enseignement explicite ?",
+      a: ["Elle active les réseaux préexistants, réduit la charge cognitive et prépare les ancres pour les nouveaux contenus","Elle sert uniquement à évaluer les élèves avant d'avancer dans la progression","Elle est utile uniquement pour les matières avec des contenus très hiérarchisés","La révision initiale nuit à l'attention en réduisant la nouveauté de la séance"],
+      correct: 0,
+      explain: "La révision initiale (principe 1 de Rosenshine) active les connaissances antérieures (ancres neuronales selon Hebb), réduit la charge cognitive en rendant les prérequis accessibles, et prépare le cerveau à connecter les nouvelles informations aux réseaux existants. C'est aussi un moment de vérification formative rapide."
+    },
+    {
+      q: "Comment expliquer que l'enseignement par 'petits pas' soit plus efficace qu'un enseignement par 'grands blocs' ?",
+      a: ["Les petits pas respectent les limites de la MdT et permettent de vérifier à chaque étape","Les grands blocs sont plus efficaces car ils donnent une vue d'ensemble complète","L'efficacité des petits pas n'est prouvée qu'en primaire selon la recherche","Les petits pas ralentissent trop l'apprentissage des élèves les plus capables"],
+      correct: 0,
+      explain: "Présenter trop d'informations en même temps sature la MdT et empêche un traitement profond. Les petits pas (principe de Rosenshine) permettent de : traiter chaque étape en profondeur, vérifier la compréhension avant d'avancer, et construire des connaissances solidement ancrées avant d'ajouter la complexité suivante."
+    },
+    {
+      q: "Analyser : dans une approche par problèmes (Problem-Based Learning), les élèves débutants découvrent eux-mêmes les concepts. Quelle alternative plus efficace ?",
+      a: ["Un enseignement explicite des concepts d'abord, puis résolution de problèmes pour les appliquer","Le PBL est toujours supérieur à l'enseignement explicite selon les méta-analyses","Il faut supprimer les problèmes et rester uniquement dans l'enseignement magistral","Une combinaison aléatoire de découverte et d'explicite selon l'humeur de l'enseignant"],
+      correct: 0,
+      explain: "La recherche sur l'effet de guidage minimal (Kirschner, Sweller & Clark, 2006) montre que les débutants ne bénéficient pas de la découverte non guidée. La séquence optimale est : enseignement explicite d'abord (concepts, procédures) → problèmes pour appliquer. Les experts, eux, peuvent bénéficier d'une exploration plus ouverte."
+    },
+    {
+      q: "Comment la pédagogie explicite peut-elle coexister avec les approches collaboratives sans contradiction ?",
+      a: ["La collaboration applique ce qui a été enseigné — les deux se séquencent logiquement","L'explicite s'oppose fondamentalement à toute forme de collaboration en classe","Il faut choisir entre explicite et collaboratif — les deux ne peuvent être combinés","La collaboration remplace avantageusement l'instruction explicite dans tous les cas"],
+      correct: 0,
+      explain: "Explicite et collaboratif ne s'opposent pas — ils se séquencent. L'instruction explicite (I do, We do) fournit les connaissances et outils nécessaires. La collaboration applique, enrichit et approfondit ces connaissances dans des tâches complexes. La collaboration sans instruction préalable crée de la confusion ; l'instruction sans collaboration prive d'enrichissement par les pairs."
+    },
+    {
+      q: "Comment la notion de 'feedback invisible' (Nuthall) remet-elle en question certaines pratiques d'enseignement explicite ?",
+      a: ["Nuthall montre que les enseignants méconnaissent ce qui se passe — la vérification est indispensable","Le feedback invisible prouve que l'enseignement explicite est inefficace en pratique","Les feedbacks des pairs sont toujours plus efficaces que celui de l'enseignant","L'enseignement explicite élimine totalement les feedbacks informels entre pairs"],
+      correct: 0,
+      explain: "Nuthall a montré que les élèves reçoivent la plupart de leurs feedbacks de leurs pairs — et que la majorité est incorrecte. L'enseignement explicite doit donc intégrer une vérification systématique des conceptions construites lors des interactions entre pairs, pas seulement lors des phases enseignant-élève. Le feedback 'visible' de l'enseignant ne suffit pas à corriger les représentations informelles."
+    },
+    {
+      q: "Pourquoi l'enseignement explicite peut-il être qualifié de 'pédagogie de l'équité' ?",
+      a: ["Il democratise l'accès aux stratégies et codes scolaires souvent réservés à certains milieux","Il favorise les élèves disciplinés et attentifs, creusant les inégalités pour les autres","L'équité ne dépend que des ressources matérielles — pas des méthodes pédagogiques","Il est équitable uniquement si combiné avec une réduction de la taille des classes"],
+      correct: 0,
+      explain: "L'enseignement explicite est une pédagogie de l'équité car il rend accessibles à tous les codes souvent transmis implicitement dans les familles cultivées : comment argumenter, comment structurer une réponse, ce que 'maîtriser' signifie concrètement. En explicitant ces codes, il réduit l'avantage des élèves qui les reçoivent déjà à la maison."
+    },
+    {
+      q: "Comment l'enseignement explicite s'adapte-t-il aux élèves experts dans un domaine ?",
+      a: ["En fournissant des cadres solides, l'explicite permet ensuite un questionnement profond","L'explicite s'oppose fondamentalement à la pensée critique qui requiert la liberté","La pensée critique ne peut se développer que par des approches entièrement non directives","L'explicite développe uniquement la pensée convergente, jamais la pensée critique"],
+      correct: 0,
+      explain: "L'effet d'expertise (Sweller) montre que les experts peuvent pâtir d'un guidage excessif : leur MdT est libérée par leurs connaissances automatisées, et des exemples résolus détaillés peuvent même gêner leur traitement. Pour eux, des problèmes moins guidés et plus ouverts sont souvent plus efficaces — justifiant une différenciation du niveau d'étayage."
+    },
+    {
+      q: "En quoi la pédagogie explicite remet-elle en question le mythe 'les bons enseignants savent si leurs élèves ont compris' ?",
+      a: ["Nuthall montre que les enseignants se trompent souvent — la vérification systématique est indispensable","Ce mythe est fondé — les enseignants expérimentés perçoivent toujours la compréhension","La solution est de réduire les effectifs pour que l'enseignant perçoive mieux chaque élève","L'intuition de l'enseignant est fiable — la vérification formelle n'apporte rien de plus"],
+      correct: 0,
+      explain: "Nuthall a démontré que les enseignants — même expérimentés et attentifs — se trompent régulièrement sur la compréhension réelle de leurs élèves. La pédagogie explicite intègre ce constat en rendant la vérification systématique et structurée — par des questions ciblées, des mini-évaluations, des reformulations — plutôt que de s'en remettre à l'intuition."
+    },
+    {
+      q: "Comment la pédagogie explicite peut-elle développer la pensée critique, souvent opposée à l'instruction directe ?",
+      a: ["En fournissant des cadres conceptuels solides, elle permet ensuite un questionnement critique profond","Elle s'oppose fondamentalement à la pensée critique qui requiert liberté et exploration","La pensée critique ne peut se développer que par des approches totalement non directives","L'explicite développe uniquement la pensée convergente, jamais la pensée critique"],
+      correct: 0,
+      explain: "La pensée critique requiert des connaissances solides sur lesquelles exercer son jugement. L'enseignement explicite construit ces connaissances de façon efficace — libérant la MdT pour l'analyse, l'évaluation et la remise en question. Sans base explicitement enseignée, la 'pensée critique' reste superficielle faute de matière à analyser."
+    },
+    {
+      q: "Pourquoi la séquence 'comprendre avant d'apprendre' est-elle cohérente avec la pédagogie explicite ?",
+      a: ["L'explicite crée d'abord la représentation déclarative (comprendre) avant de construire les procédures","L'explicite préconise l'automatisation avant la compréhension pour plus d'efficacité","La séquence s'inverse selon les disciplines — il n'y a pas de règle universelle","Comprendre et apprendre sont simultanés — la séquence n'a pas d'importance"],
+      correct: 0,
+      explain: "La pédagogie explicite respecte la séquence 'comprendre puis apprendre' : elle commence par construire une représentation claire et correcte (modélisation, explication des critères), puis structure l'entraînement pour automatiser cette compréhension. L'entraînement sans compréhension préalable crée des procédures rigides et non transférables."
+    },
+    {
+      q: "Analyser en synthèse : pourquoi l'enseignement explicite combiné au feedback et à la métacognition constitue-t-il le 'trio gagnant' de l'EEF ?",
+      a: ["Les trois se potentialisent : l'explicite structure, le feedback corrige, la MC autorégule","Ce trio est gagnant uniquement en termes de coût — pas en termes d'impact réel","L'efficacité du trio est prouvée uniquement en contexte anglophone selon l'EEF","Les trois approches se nuisent mutuellement quand elles sont combinées ensemble"],
+      correct: 0,
+      explain: "Le trio est cohérent : l'enseignement explicite établit les objectifs clairs et le guidage (condition du feed up et de la compréhension) ; le feedback mesure l'écart et oriente (condition de la progression) ; la métacognition permet à l'élève de piloter son propre apprentissage (condition de l'autonomie durable). Combinés, leur impact est synergique et chacun renforce l'efficacité des deux autres."
+    }
+  ]
+};
+
+const LEVELS = ['decouvre', 'alaise', 'expert'];
+const LEVEL_NAMES = { decouvre: 'Je découvre', alaise: 'Je suis à l\'aise', expert: 'J\'approche de l\'expertise' };
+const LEVEL_ICONS = { decouvre: '🌱', alaise: '⚡', expert: '🔬' };
+const LEVEL_DESCS = { decouvre: 'Repérage & compréhension explicite', alaise: 'Liens, nuances & distinctions fines', expert: 'Analyse, transfert & cas complexes' };
+const PASS_SCORE = 80;
+const Q_PER_SESSION = 10;
+
+let state = { unlockedLevel: 0, completedLevels: [], currentLevel: 0, sessionQuestions: [], currentQ: 0, score: 0, errors: [], answered: false };
+
+function loadState() {
+  try { const s = localStorage.getItem('pedagogie_explicite_quiz'); if (s) { const sv = JSON.parse(s); state.unlockedLevel = sv.unlockedLevel || 0; state.completedLevels = sv.completedLevels || []; } } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem('pedagogie_explicite_quiz', JSON.stringify({ unlockedLevel: state.unlockedLevel, completedLevels: state.completedLevels })); } catch(e) {}
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function renderHome() {
+  const grid = document.getElementById('levels-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach((level, i) => {
+    const unlocked = i <= state.unlockedLevel;
+    const completed = state.completedLevels.includes(level);
+    grid.innerHTML += `<div class="level-card ${completed ? 'completed' : unlocked ? 'unlocked' : 'locked'}">
+      ${completed ? '<div class="lc-check">✓</div>' : ''}
+      <div class="lc-icon">${LEVEL_ICONS[level]}</div>
+      <div class="lc-name">${LEVEL_NAMES[level]}</div>
+      <div class="lc-desc">${LEVEL_DESCS[level]}</div>
+    </div>`;
+  });
+  const allDone = state.completedLevels.length === 3;
+  const btn = document.getElementById('btn-start');
+  if (allDone) { btn.textContent = '🎓 Voir mon badge'; btn.onclick = () => showScreen('badge'); }
+  else { btn.textContent = `Commencer — ${LEVEL_NAMES[LEVELS[state.unlockedLevel]]} →`; btn.onclick = startCurrentLevel; }
+}
+function startCurrentLevel() {
+  const level = LEVELS[state.unlockedLevel];
+  const pool = shuffle(QUESTIONS[level]).slice(0, Q_PER_SESSION);
+  state.sessionQuestions = pool.map(q => {
+    const answers = q.a.map((text, i) => ({ text, originalIndex: i }));
+    const shuffled = shuffle(answers);
+    const newCorrect = shuffled.findIndex(a => a.originalIndex === q.correct);
+    return { q: q.q, a: shuffled.map(a => a.text), correct: newCorrect, explain: q.explain };
+  });
+  state.currentQ = 0; state.score = 0; state.errors = [];
+  state.currentLevel = state.unlockedLevel;
+  showScreen('quiz'); renderQuestion();
+}
+function renderQuestion() {
+  const q = state.sessionQuestions[state.currentQ];
+  const tagClasses = ['tag-decouvre', 'tag-alaise', 'tag-expert'];
+  document.getElementById('quiz-level-tag').textContent = LEVEL_NAMES[LEVELS[state.currentLevel]];
+  document.getElementById('quiz-level-tag').className = 'quiz-level-tag ' + tagClasses[state.currentLevel];
+  document.getElementById('quiz-progress').textContent = `Q ${state.currentQ + 1}/${Q_PER_SESSION}`;
+  document.getElementById('quiz-score-mini').textContent = `Score : ${state.score}%`;
+  document.getElementById('q-num').textContent = `Question ${state.currentQ + 1}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('progress-fill').style.width = (state.currentQ / Q_PER_SESSION * 100) + '%';
+  const list = document.getElementById('answers-list');
+  const letters = ['A','B','C','D'];
+  list.innerHTML = '';
+  q.a.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="ans-letter">${letters[i]}</span><span>${ans}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    list.appendChild(btn);
+  });
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+  state.answered = false;
+}
+function selectAnswer(idx) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = state.sessionQuestions[state.currentQ];
+  const btns = document.querySelectorAll('.answer-btn');
+  const isCorrect = idx === q.correct;
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === idx && !isCorrect) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'feedback-box ' + (isCorrect ? 'correct' : 'wrong');
+  fb.style.display = 'block';
+  document.getElementById('fb-verdict').textContent = isCorrect ? '✓ Bonne réponse !' : '✗ Pas tout à fait…';
+  document.getElementById('fb-explain').textContent = q.explain;
+  if (isCorrect) { state.score += 10; document.getElementById('quiz-score-mini').textContent = `Score : ${state.score}%`; }
+  else { state.errors.push({ question: q.q, chosen: q.a[idx], correct: q.a[q.correct], explain: q.explain }); }
+  document.getElementById('btn-next').style.display = 'block';
+  document.getElementById('btn-next').textContent = state.currentQ < Q_PER_SESSION - 1 ? 'Question suivante →' : 'Voir mes résultats →';
+}
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ < Q_PER_SESSION) renderQuestion();
+  else showResults();
+}
+function showResults() {
+  showScreen('results');
+  const pass = state.score >= PASS_SCORE;
+  const hero = document.getElementById('result-hero');
+  hero.className = 'result-hero ' + (pass ? 'pass' : 'fail');
+  document.getElementById('result-prog-bar').style.background = pass ? 'rgba(255,255,255,0.25)' : 'var(--gray-200)';
+  document.getElementById('result-prog-fill').style.background = pass ? 'rgba(255,255,255,0.85)' : 'var(--pink)';
+  document.getElementById('result-emoji').textContent = pass ? '🎉' : '💡';
+  document.getElementById('result-score').textContent = state.score + '%';
+  setTimeout(() => { document.getElementById('result-prog-fill').style.width = state.score + '%'; }, 100);
+  document.getElementById('result-verdict').textContent = pass ? 'Niveau validé — bien joué !' : `Il faut 80% pour passer. Encore ${80 - state.score}% manquants !`;
+  const errSec = document.getElementById('errors-section');
+  if (state.errors.length > 0) {
+    errSec.style.display = 'block';
+    document.getElementById('errors-list').innerHTML = state.errors.map(e => `<div class="error-item">
+      <div class="error-q">❓ ${e.question}</div>
+      <div class="error-yours">✗ Votre réponse : ${e.chosen}</div>
+      <div class="error-correct">✓ Bonne réponse : ${e.correct}</div>
+      <div class="error-explain">💡 ${e.explain}</div>
+    </div>`).join('');
+  } else { errSec.style.display = 'none'; }
+  const btnNext = document.getElementById('btn-next-level');
+  if (pass) {
+    const levelKey = LEVELS[state.currentLevel];
+    if (!state.completedLevels.includes(levelKey)) state.completedLevels.push(levelKey);
+    const nextIdx = state.currentLevel + 1;
+    if (nextIdx < LEVELS.length) state.unlockedLevel = Math.max(state.unlockedLevel, nextIdx);
+    saveState();
+    btnNext.textContent = state.completedLevels.length === 3 ? '🎓 Récupérer mon badge →' : `Niveau suivant : ${LEVEL_NAMES[LEVELS[nextIdx]]} →`;
+    btnNext.style.display = 'block';
+  } else { btnNext.style.display = 'none'; }
+}
+function nextLevelOrBadge() {
+  if (state.completedLevels.length === 3) showScreen('badge');
+  else { state.unlockedLevel = Math.min(state.currentLevel + 1, LEVELS.length - 1); showScreen('home'); renderHome(); }
+}
+function retryLevel() { showScreen('home'); renderHome(); }
+function resetAll() { state.unlockedLevel = 0; state.completedLevels = []; saveState(); showScreen('home'); renderHome(); }
+function confirmReset() {
+  if (confirm('Effacer tous les scores et recommencer depuis zéro ?')) {
+    localStorage.removeItem('pedagogie_explicite_quiz');
+    state.unlockedLevel = 0; state.completedLevels = [];
+    showScreen('home'); renderHome();
+  }
+}
+
+loadState(); renderHome(); showScreen('home');
+</script>
+</body>
+</html>
